@@ -1,0 +1,3628 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>搜狐坦克大战</title>
+    <meta name="viewport" content="width=device-width,initial-scale=0.5,minimum-scale=1.0,maximum-scale=2.0,user-scalable=1" />
+    <script type="text/javascript" src="js/jquery-1.12.4.min.js"></script>
+    <script type="text/javascript" src="js/pathfinding-browser.js"></script>
+    <style>
+        @font-face {
+            font-family: 'aitank-boomboomboom';
+            src: url('fonts/文悦新青年体.otf');
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            font-family: 'aitank-boomboomboom' !important;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            align-self: center;
+            /* 这个缩放是为了方便正式比赛上 指定pc机子免于来回缩放, 其余设备可随意改 */
+            zoom: 0.6 !important;
+        }
+
+        body {
+            background-color: #000;
+            overflow: hidden;
+        }
+
+        .container {
+            margin: auto;
+            /*margin-top:100px*/
+            width: 4000px;
+            height: 1800px;
+            z-index: 1025;
+        }
+
+        #canvas {
+            width: 4000px;
+            height: 1800px;
+            border: 1px solid aliceblue;
+        }
+
+        #fileImport {
+            /*调大一下导入按钮*/
+            zoom: 1.5;
+            line-height: 1.499;
+            position: fixed;
+            display: inline-block;
+            white-space: nowrap;
+            text-align: center;
+            background-image: none;
+            box-shadow: 0 2px 0 rgb(0 0 0 / 2%);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
+            user-select: none;
+            touch-action: manipulation;
+            height: 50px;
+            padding: 0 25px;
+            font-size: 24px;
+            border-radius: 4px;
+            color: rgba(0, 0, 0, 0.65);
+            background-color: #fff;
+            border: 1px solid #d9d9d9;
+            width: fit-content;
+            z-index: 10;
+        }
+
+        /*1024*/
+        input {
+            font-size: 50px;
+            width: 150px;
+            color: #fff;
+            background-color: transparent;
+            padding: 0;
+            height: 54px;
+            border: none;
+            line-height: 54px;
+            margin: 0;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            flex-direction: column;
+            height: 430px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .header .info {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            position: absolute;
+            top: 86px;
+            z-index: 10;
+        }
+
+        .header .info > input {
+            font-size: 54px;
+            width: 1240px;
+            height: 80px;
+            line-height: 54px;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            overflow: hidden;
+        }
+
+        .header .info input:first-child {
+            margin-right: 760px;
+            text-align: right;
+        }
+
+        .header .info input:last-child {
+            margin-left: 760px;
+            text-align: left;
+        }
+
+        .header .info .game-mode {
+            position: absolute;
+            top: 108px;
+            height: 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .header .info .game-mode > div {
+            margin: 0 20px;
+            color: #fff;
+            font-size: 52px;
+            text-shadow: 5px 5px 5px #ab7322;
+        }
+
+        .header .remainTime {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            position: absolute;
+            top: 322px;
+            z-index: 10;
+        }
+
+        .header > .remainTime > input {
+            color: #ffffff;
+            text-shadow: 5px 5px 5px #ab7322;
+            text-align: center;
+            font-size: 56px;
+            height: 60px;
+        }
+
+        .header .playerKill {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            position: absolute;
+            top: 300px;
+            z-index: 10;
+        }
+
+        .header .playerKill div {
+            width: 361px;
+            height: 101px;
+            background-position: center;
+            background-size: contain;
+            background-repeat: no-repeat;
+            display: inline-flex;
+            align-items: center;
+            text-align: center;
+        }
+
+        .header .playerKill div:first-child {
+            margin-right: 200px;
+            justify-content: end;
+            background: url('img/蓝队记分牌.png');
+        }
+        
+        .header .playerKill div:last-child {
+            margin-left: 200px;
+            background: url('img/红队记分牌.png');
+        }
+
+        .header .playerKill input {
+            font-size: 70px;
+            line-height: 70px;
+            height: 70px;
+        }
+
+        .header .playerKill div:first-child > input {
+            margin-right: 100px;
+            text-align: right;
+        }
+
+        .header .playerKill div:last-child > input {
+            margin-left: 100px;
+        }
+
+        .score {
+            margin-bottom: 26px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .score img {
+            width: 50px;
+            height: 50px;
+            margin: 0 10px;
+        }
+
+        .score > div {
+            display: flex;
+            align-items: center;
+        }
+
+        .score > div:last-child input {
+            text-align: right;
+        }
+
+        .result {
+            display: none;
+            position: fixed;
+            top: 720px;
+            left: 0;
+            width: 100%;
+        }
+
+        .result .result-bg {
+            display: flex;
+            width: 100%;
+            justify-content: center;
+            position: absolute;
+            top: 0;
+        }
+
+        .result .result-bgImg {
+            height: 1200px;
+        }
+
+        .result .result-playerImg {
+            display: flex;
+            width: 100%;
+            justify-content: center;
+            position: fixed;
+            top: 920px;
+            left: 0;
+        }
+
+        .result .result-playerImg img {
+            height: 600px;
+        }
+
+        .result .result-playerImg .higher-img {
+            margin-top: 98px;
+        }
+
+        .result .result-playerImg :first-child {
+            margin-right: 400px;
+        }
+
+        .result .result-playerImg :last-child {
+            margin-left: 400px;
+        }
+
+        .result .result-info {
+            display: flex;
+            width: 100%;
+            justify-content: center;
+            position: fixed;
+            top: 1530px;
+            left: 0;
+            font-size: 56px;
+            line-height: 80px;
+            color: #fff;
+        }
+
+        .result .result-info > div {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 840px;
+        }
+
+        .result .result-info > div:first-child {
+            margin-right: 750px;
+        }
+
+        .result .result-info > div:last-child {
+            margin-left: 750px;
+        }
+
+        .result .result-info .name-bg {
+            height: 110px;
+            width: 840px;
+            position: absolute;
+            top: 0px;
+        }
+
+        .result .result-info .name-light {
+            transform: translateY(-50px);
+        }
+
+        .result .result-info .result-name {
+            z-index: 10;
+            max-width: 670px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 110px;
+        }
+
+        .result .result-info .loser-info {
+            transform: translateY(115px);
+        }
+
+        .result .result-info .player-score {
+            line-height: 90px;
+        }
+
+        .start-container {
+            will-change: auto;
+            background: url('img/开始图标.png');
+            background-position: center;
+            background-size: contain;
+            background-repeat: no-repeat;
+            position: fixed;
+            z-index: 1024;
+            top: -50%;
+            left: 50%;
+            animation: tocenter 0.8s ease-in 0.5s forwards;
+            height: 1800px;
+            width: 4000px;
+            margin: 0 auto;
+            margin-top: 180px;
+            transform: translate3d(-50%, -50%, 0);
+        }
+
+        .start-container > .start-button {
+                background-color: transparent;
+                width: 800px;
+                height: 220px;
+                position: absolute;
+                bottom: 700px;
+                left: 50%;
+                transform: translateX(-50%);
+        }
+
+        .start-container > .start-button:hover {
+            cursor: pointer;
+        }
+
+        .start-container.leave {
+            animation: toout 0.5s ease-in forwards;
+        }
+
+        @keyframes tocenter {
+            from {
+                top: -50%;
+                opacity: 0;
+            }
+
+            to {
+                top: 45%;
+                opacity: 1;
+            }
+        }
+
+        @keyframes toout {
+            from {
+                top: 45%;
+                opacity: 1;
+            }
+
+            to {
+                top: -50%;
+                opacity: 0;
+            }
+        }
+
+        .main-top-bg {
+            display: flex;
+            justify-content: space-between;
+            position: fixed;
+            height: 350px;
+            top: 80px;
+            width: 100%;
+            pointer-events: none;
+        }
+
+        .main-top-bg img {
+            height: 100%;
+        }
+
+        .fatal_error {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            width: 10px;
+            height: 10px;
+            border-radius: 10px;
+            background-color: red;
+        }
+        .fatal_error_left_show {
+            display: block !important;
+            left: 20px;
+        }
+        .fatal_error_right_show {
+            display: block !important;
+            right: 20px;
+        }
+    </style>
+</head>
+
+<body>
+<p id="importbutton"></p>
+<!-- 装饰bg -->
+<div class="main-top-bg">
+    <div><img src="img/蓝方装饰.png" alt="" /></div>
+    <div><img src="img/红方装饰.png" alt="" /></div>
+</div>
+
+<!--顶部banner-->
+<div class="header">
+    <div>
+        <img src="img/坦克大赛标题.png" style="width: 3280px; margin-top: 20px;"/>
+    </div>
+    <div class="info">
+        <input id="Player1barName" disabled="disabled" value="蓝队队名" />
+        <div class="game-mode">
+            <div class="debug">
+            </div>
+            <div class="mode">
+            </div>
+        </div>
+        <input id="Player2barName" disabled="disabled" value="红队队名" />
+    </div>
+    <div class="remainTime">
+        <input id="remain" disabled="disabled" value="90" />
+    </div>
+    <div class="playerKill">
+        <div>
+            <!-- <img src="img/蓝队记分牌.png" /> -->
+            <input id="playerAKill" disabled="disabled" value="" />
+        </div>
+        <div>
+            <!-- <img src="img/红队记分牌.png" /> -->
+            <input id="playerBKill" disabled="disabled" value="" />
+        </div>
+    </div>
+</div>
+
+<!--开始-->
+<div class="start-container">
+    <p id="Player1Name" style="visibility: hidden">play1:</p>
+    <p id="Player2Name" style="visibility: hidden">play2:</p>
+    <div id="twoPlayer" class="start-button"></div>
+</div>
+
+<div class="container">
+    <div class="score">
+        <div>
+            <img src="img/射出子弹.png" />
+            <input id="playerAFire" disabled="disabled" value="" />
+            <img src="img/击中坦克.png" />
+            <input id="player1Numbar" disabled="disabled" value="" />
+            <!-- <img src="img/击杀坦克.png" />
+            <input id="playerAKill" disabled="disabled" value="" /> -->
+            <img src="img/剩余血量.png" />
+            <input id="playplayerALife" disabled="disabled" value="" />
+            <img src="img/耗时.png" />
+            <input id="playerACostTime" disabled="disabled" value="" />
+            <img src="img/子弹上限.png" />
+            <input id="playerAbullet" disabled="disabled" value="" />
+            <img src="img/夺旗.png" />
+            <input id="playerAFlag" disabled="disabled" value="" />
+        </div>
+        <div class="weather-tip"></div>
+        <div>
+            <input id="playerBFlag" disabled="disabled" value="" />
+            <img src="img/夺旗.png" />
+            <input id="playerBbullet" disabled="disabled" value="" />
+            <img src="img/子弹上限.png" />
+            <input id="playerBCostTime" disabled="disabled" value="" />
+            <img src="img/耗时.png" />
+            <input id="playerBLife" disabled="disabled" value="" />
+            <img src="img/剩余血量.png" />
+            <!-- <input id="playerBKill" disabled="disabled" value="" />
+            <img src="img/击杀坦克.png" /> -->
+            <input id="player2Numbar" disabled="disabled" value="" />
+            <img src="img/击中坦克.png" />
+            <input id="playerBFire" disabled="disabled" value="" />
+            <img src="img/射出子弹.png" />
+        </div>
+    </div>
+    <canvas id="canvas"></canvas>
+</div>
+
+<!--声音没改-->
+<audio id="startMusic">
+    <source src="music/坦克大战音乐.mp3" type="audio/mp3" />
+</audio>
+<audio id="attack">
+    <source src="music/attack.mp3" type="audio/mp3" />
+</audio>
+<audio id="remix">
+    <source src="music/remix.mp3" type="audio/mp3" />
+</audio>
+<audio id="tagmusic" muted="muted">
+    <source src="music/tagmusic.mp3" type="audio/mp3" />
+</audio>
+<audio id="over">
+    <source src="music/over.mp3" type="audio/mp3" />
+</audio>
+<audio id="boom">
+    <source src="music/boom.mp3" type="audio/mp3" />
+</audio>
+<audio id="superboom">
+    <source src="music/superboom.mp3" type="audio/mp3" />
+</audio>
+
+<!--结算info-->
+<div class="result"></div>
+
+<!-- 标记队伍有异常发生 -->
+<div class="fatal_error"></div>
+<script>
+    // preget
+    // UI相关操作
+    // 展示结果
+    //     leftScore   左侧选手得分
+    //     rightScore  右侧选手得分
+    //     win         1-左侧选手赢了  2-右侧选手赢了  3-双败
+    //     leftName    左侧选手队名
+    //     rightName   右侧选手队名
+    function UIShowResult(leftScore, rightScore, win, leftName, rightName) {
+        const resultEl = document.querySelector('.result');
+
+        // 背景
+        const wrapperPic = document.createElement('div');
+        wrapperPic.setAttribute('class', 'result-bg');
+        if (win === 1) {
+            const resultBg = new Image();
+            resultBg.src = 'img/结算背景-蓝胜.png'
+            resultBg.setAttribute('class', 'result-bgImg');
+            wrapperPic.appendChild(resultBg);
+        } else if (win === 2) {
+            const resultBg = new Image();
+            resultBg.src = 'img/结算背景-红胜.png'
+            resultBg.setAttribute('class', 'result-bgImg');
+            wrapperPic.appendChild(resultBg);
+        } else {
+            const resultBg = new Image();
+            resultBg.src = 'img/平局背景.png'
+            resultBg.setAttribute('class', 'result-bgImg');
+            wrapperPic.appendChild(resultBg);
+        }
+
+        // 玩家胜利/失败图标
+        const playerImg = document.createElement('div');
+        playerImg.setAttribute('class', 'result-playerImg');
+        if (win === 1) {
+            const player1Img = new Image();
+            player1Img.src = 'img/胜利蓝.png';
+            const player2Img = new Image();
+            player2Img.src = 'img/失败.png';
+            player2Img.setAttribute("class", "higher-img");
+            playerImg.appendChild(player1Img);
+            playerImg.appendChild(player2Img);
+        } else if (win === 2) {
+            const player1Img = new Image();
+            player1Img.src = 'img/失败.png';
+            player1Img.setAttribute("class", "higher-img");
+            const player2Img = new Image();
+            player2Img.src = 'img/胜利红.png';
+            playerImg.appendChild(player1Img);
+            playerImg.appendChild(player2Img);
+        } else {
+            const player1Img = new Image();
+            player1Img.src = 'img/失败.png';
+            const player2Img = new Image();
+            player2Img.src = 'img/失败.png';
+            playerImg.appendChild(player1Img);
+            playerImg.appendChild(player2Img);
+        }
+
+        // 玩家名称及得分
+        const resultScoreEl = document.createElement('div');
+        resultScoreEl.setAttribute('class', 'result-info');
+        // 左侧玩家
+        const div1 = document.createElement('div');
+        const pic1 = new Image();
+        pic1.src = 'img/蓝色队名框.png';
+        pic1.setAttribute("class", "name-bg");
+        const name1 = document.createElement('div');
+        name1.innerHTML = leftName;
+        name1.setAttribute('class', 'result-name')
+        const scoreText1 = document.createElement('span');
+        scoreText1.innerHTML = "得分：<span style='font-size: 64px;color: #ffcc36; text-shadow: 5px 5px 5px #53422a'>" + leftScore + "</span>";
+        scoreText1.setAttribute("class", "player-score");
+        const light1 = new Image();
+        light1.src = 'img/蓝色光效.png';
+        light1.setAttribute("class", "name-light");
+        div1.appendChild(pic1);
+        div1.appendChild(name1);
+        div1.appendChild(scoreText1);
+        div1.appendChild(light1);
+        // 右侧玩家
+        const div2 = document.createElement('div');
+        const pic2 = new Image();
+        pic2.src = 'img/红色队名框.png';
+        pic2.setAttribute("class", "name-bg");
+        const name2 = document.createElement('div');
+        name2.innerHTML = rightName;
+        name2.setAttribute('class', 'result-name')
+        const scoreText2 = document.createElement('span');
+        scoreText2.innerHTML = "得分：<span style='font-size: 64px;color: #ffcc36; text-shadow: 5px 5px 5px #53422a'>" + rightScore + "</span>";
+        scoreText2.setAttribute("class", "player-score");
+        const light2 = new Image();
+        light2.src = 'img/红色光效.png';
+        light2.setAttribute("class", "name-light");
+        div2.appendChild(pic2);
+        div2.appendChild(name2);
+        div2.appendChild(scoreText2);
+        div2.appendChild(light2);
+        if (win === 1) {
+            div2.setAttribute("class", "loser-info");
+        } else if (win === 2) {
+            div1.setAttribute("class", "loser-info");
+        }
+
+        resultScoreEl.appendChild(div1);
+        resultScoreEl.appendChild(div2);
+        resultEl.innerHTML = '';
+        resultEl.appendChild(wrapperPic);
+        resultEl.appendChild(playerImg);
+        resultEl.appendChild(resultScoreEl);
+        resultEl.setAttribute('style', 'display: block');
+    }
+
+    // 隐藏debug
+    function UIShowDebug() {
+        const img = document.querySelector('.debug');
+        img.innerHTML = "DEBUG";
+    }
+
+    // 根据游戏模式更新图标
+    function UIShowMode(mode) {
+        const el = document.querySelector('.mode');
+        switch (mode) {
+            case 2:
+                el.innerHTML = "车轮战";
+                break;
+            case 3:
+                el.innerHTML = "预决赛"
+                break;
+            case 4:
+                el.innerHTML = "决赛";
+                break;
+            default:
+                el.innerHTML = "AIRANK";
+        }
+    }
+
+    // 参数队伍有异常发生 展示
+    function UIShowFatalError(player) {
+        // 1 左侧玩家  2 右侧玩家
+        const el = document.querySelector('.fatal_error');
+        if (player === 1) {
+            el.classList.add('fatal_error_left_show');
+        }
+        if (player === 2) {
+            el.classList.add('fatal_error_right_show');
+        }
+    }
+</script>
+
+<script>
+    // weather code:
+    /**
+     * @file 包含两个功能，
+     * @class Timer - 提供了一个计时器Timer，倒计时
+     * @class Weather - 提供了一个天气实现Weather，用于tank的效果
+     */
+    /**
+     * @description 计时器
+     * */
+    class Timer {
+        constructor(remainTime = 1000) {
+            this.#remainTime = remainTime;
+        }
+
+        #remainTime = 0;
+        #timer = null;
+        #started = false;
+        #preCb = () => {};
+        #stepCb = remainTime => {};
+        #postCb = () => {};
+
+        /**
+         * @description 开始计时
+         * */
+        start() {
+            if (this.#started) return;
+            this.#started = true;
+            this.#preCb();
+            this.#start();
+        }
+
+        #start() {
+            this.#remainTime -= 1000;
+            this.#stepCb(this.#remainTime);
+            if (this.#remainTime <= 0) {
+                this.#postCb();
+                return clearTimeout(this.#timer);
+            }
+            this.#timer = setTimeout(this.#start.bind(this), 1000);
+        }
+
+        #check(fn) {
+            return typeof fn === 'function';
+        }
+
+        setBeforeStartCallback(fn) {
+            if (this.#check(fn)) {
+                this.#preCb = fn;
+            }
+        }
+
+        setPerStepCallback(fn) {
+            if (this.#check(fn)) {
+                this.#stepCb = fn;
+            }
+        }
+
+        setAfterEndCallback(fn) {
+            if (this.#check(fn)) {
+                this.#postCb = fn;
+            }
+        }
+    }
+
+    /**
+     * @class
+     * @classdesc 增加天气效果  风雨雪因组委会有调整， 具体副作用看主程的调用关于effect的设置
+     */
+    class Weather {
+        constructor(options = {}) {
+            const { maskEl, remainTime, counts } = options;
+            if (typeof maskEl.getBoundingClientRect !== 'function') {
+                throw new TypeError('maskEl必须是canvas的dom元素');
+            }
+            this.#maskEl = maskEl;
+            this.#remainTime = remainTime ?? 15000;
+            this.#counts = counts ?? 100;
+        }
+
+        /**
+         * @type Timer
+         * */
+        #timer = null;
+        #countdownEffect = remainTime => {};
+
+        #maskEl = null;
+        #remainTime = 0;
+        #started = false;
+        #effect = null;
+
+        #canvasCtx = null;
+        #canvasWidth = null;
+        #canvasHeight = null;
+
+        // 元素
+        #items = [];
+        #counts = 0; // 元素个数
+        /**
+         * @description default Item's class
+         */
+        #Item = class {
+            constructor(canvasWidth, canvasHeight) {}
+
+            draw(ctx) {}
+        };
+
+        /**
+         * @description 设置Item类的实现
+         * 必须至少实现draw方法
+         * */
+        setItemClass(Item) {
+            this.#Item = Item;
+        }
+
+        /**
+         * @public
+         * @description 开始执行动画
+         * @param {boolean} hasTime 是否有倒计时 default: true
+         */
+        start(hasTime = true) {
+            if (this.#started) return;
+            if (hasTime) {
+                this.#timer = new Timer(this.#remainTime);
+                this.#timer.setPerStepCallback(this.#countdownEffect);
+                this.#timer.setAfterEndCallback(this.#begin);
+                this.#timer.start();
+            } else {
+                this.#begin();
+            }
+        }
+
+        #begin = () => {
+            if (this.#started) return;
+            if (typeof this.#effect === 'function') {
+                this.#effect();
+            }
+            this.#started = true;
+            this.#attachOverlay();
+            this.#draw();
+        };
+        #init = true;
+
+        #draw() {
+            if (this.#init) {
+                for (let i = 0; i < this.#counts; i++) {
+                    this.#items.push(new this.#Item(this.#canvasWidth, this.#canvasHeight));
+                }
+                this.#init = false;
+            } else {
+                this.#clearRect();
+                this.#items.forEach(cur => cur.draw(this.#canvasCtx));
+            }
+            requestAnimationFrame(this.#draw.bind(this));
+        }
+
+        /**
+         * @description 设置倒计时函数
+         * @param {(remainTime: number)=>void} fn
+         * */
+        setCountdownEffect(fn) {
+            if (typeof fn === 'function') {
+                this.#countdownEffect = fn;
+            }
+        }
+
+        /**
+         * @description 设置天气对tank的影响函数
+         * @param {()=>void} fn
+         */
+        setEffect(fn) {
+            if (typeof fn === 'function') {
+                this.#effect = fn;
+            }
+        }
+
+        /* 产生影响层 */
+        #attachOverlay() {
+            if (this.#canvasCtx) return;
+            const rect = this.#maskEl.getBoundingClientRect();
+            const canvasEl = document.createElement('canvas');
+            canvasEl.height = rect.height;
+            canvasEl.width = rect.width;
+            this.#canvasHeight = rect.height;
+            this.#canvasWidth = rect.width;
+            canvasEl.style = `position: fixed; z-index: 1024; top: ${rect.top}px; left: ${rect.left}px; will-change: auto; pointer-events: none`;
+            this.#canvasCtx = canvasEl.getContext('2d');
+            document.body.appendChild(canvasEl);
+        }
+
+        /* todo：observe maskEl's resize */
+        #observeResize() {
+            return () => {};
+        }
+
+        #clearRect() {
+            if (!this.#canvasCtx) return;
+            this.#canvasCtx.clearRect(0, 0, this.#canvasWidth, this.#canvasHeight);
+        }
+    }
+
+    /**
+     * @description 风
+     */
+    class Wind {
+        constructor(canvasWidth, canvasHeight) {
+            this.maxX = canvasWidth;
+            this.maxY = canvasHeight;
+            this.x = (Math.random() * canvasWidth * 2) ^ 0;
+            this.y = -Math.random() * canvasHeight;
+            this.speed = Math.random() * 2 + 1;
+            this.image.src = './img/leaf2.png'; // 这个图真实尺寸 32*32
+            this.imageWidth = 32 * 2;
+            this.imageHeight = 32 * 2;
+        }
+
+        rotate = -180;
+        magic = 0; // [0,180]
+        up = true;
+        image = new Image();
+        imageWidth = 48;
+        imageHeight = 48;
+        x = 0;
+        y = 0;
+        speed = 0;
+        maxX = 0;
+        maxY = 0;
+
+        /**
+         *
+         * @param {CanvasRenderingContext2D} ctx
+         */
+        draw(ctx) {
+            ctx.save();
+            // 出去了?
+            if (this.y > this.maxY || this.x < 0) {
+                this.y = 0;
+                this.x = (Math.random() * this.maxX * 2) ^ 0;
+            } else {
+                this.y += this.speed;
+                this.x -= this.speed;
+            }
+            const factory = Math.sin((Math.PI / 180) * this.magic) / 3;
+            this.magic = (this.magic % 360) + (Math.random() > 0.5 ? 2 : 1);
+
+            ctx.translate(this.x + this.imageWidth / 2, this.y + this.imageHeight / 2);
+            ctx.rotate(((factory * 180 + 45) * Math.PI) / 180);
+            ctx.drawImage(this.image, -this.imageWidth / 2, this.imageHeight / 2, this.imageWidth, this.imageHeight);
+            ctx.restore();
+        }
+    }
+
+    /**
+     * @description 雪
+     */
+    class Snow {
+        constructor(canvasWidth, canvasHeight) {
+            this.maxX = canvasWidth;
+            this.maxY = canvasHeight;
+            this.x = Math.random() * canvasWidth;
+            this.y = -Math.random() * canvasHeight;
+            this.radius = Math.random() * 3 + 1;
+            this.speed = Math.random() * 2 + 1;
+            const r = Math.random();
+            this.drift = r > 0.5 ? Math.random() * 3 : -r;
+        }
+
+        x = 0;
+        y = 0;
+        speed = 0;
+        maxX = 0;
+        maxY = 0;
+        drift = 0;
+        radius = 0;
+        color = '#fff';
+
+        /**
+         *
+         * @param {CanvasRenderingContext2D} ctx
+         */
+        draw(ctx) {
+            // 出去了?
+            if (this.y > this.maxY) {
+                this.y = 0;
+                this.x = (Math.random() * this.maxX) ^ 0;
+            } else {
+                this.y += this.speed;
+                this.x += this.drift;
+            }
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
+            ctx.fillStyle = this.color;
+            ctx.fill();
+            ctx.closePath();
+        }
+    }
+
+    /**
+     * @description 雨
+     */
+    class Rain {
+        constructor(canvasWidth, canvasHeight) {
+            this.maxX = canvasWidth;
+            this.maxY = canvasHeight;
+            this.x = Math.random() * canvasWidth;
+            this.y = -Math.random() * canvasHeight;
+            this.radius = Math.random() * 2.5 + 0.5;
+            this.speed = ((Math.random() * 3) ^ 0) + 8;
+            this.line = (Math.random() * 10 + 2) ^ 0;
+            let r = Math.random();
+            this.magic = r > 0.5 ? -(1 - r) : r;
+        }
+
+        x = 0;
+        y = 0;
+        line = 0;
+        speed = 0;
+        maxX = 0;
+        maxY = 0;
+        magic = 0;
+        color = 'rgba(174,194,224,0.5)';
+
+        draw(ctx) {
+            // 出去了?
+            if (this.y > this.maxY) {
+                this.y = 0;
+                this.x = (Math.random() * this.maxX) ^ 0;
+            } else {
+                this.y += this.speed;
+            }
+            ctx.beginPath();
+            ctx.moveTo(this.x, this.y);
+            ctx.lineTo(this.x + this.magic, this.y + this.line);
+            ctx.strokeStyle = this.color;
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+        }
+    }
+</script>
+
+<script>
+    // game code start:
+    var Aitankclass = (function () {
+        /*
+    游戏控制参数
+    Battlemode	#用于判断是车轮战还是决战模式，campaign有参数就是车轮，默认决战，系统会在aitank都没有后读秒
+    debug		#debug默认开启，搜狐域名不开启，不开启主要是检查battleid,是否要记录数据，搜狐域名如果开启，数据结果就都不会上传了
+    aiRank		#决定是否是AI检测模式，通常只有一个player1，检查ai水平能力，debug关闭的时候上报数据，Battlemode这个时候失效
+    eCount		#eCount出现的时候会覆盖地图的默认敌人数量，主要用于测试和aiRank升级
+    FlagMode    #是否开启夺旗模式，默认开启，若url的flag字段为0则关闭
+    groupName	#赛事名称
+    battleid 	#比赛号
+    游戏配置参数
+    playerA		#playerA是player1的入参数，会自动加载js/xxx/2022playerA.js文件，xxx为队伍名称和上传目录
+    playerB		#playerB是player2的入参数，会自动加载js/xxx/2022playerB.js文件，xxx为队伍名称和上传目录
+    bgm			#数字1-10，测试背景音乐
+    map			#map入参数，动态选择地图文件，路径/aitank/map/xxx.js
+
+
+    测试模式不会使用battleid,检测到sohu域名就必须检查battleid
+    playerA，playerB文件有默认值，Battlemode默认开启，配置campaign关闭，debug不检查比赛号，正式游戏必须有比赛号
+
+    游戏的阻挡，敌人坦克数量，血量，我方坦克血量，同屏子弹数量，敌人出生位置，出生数量，都是地图控制的，
+    当检测到地图信息的mapenemytankrank不是1的时候，也就是敌人可以多血量，游戏就会随机配置击中强度，是一个基础玩法
+    */
+        function getUrlParam(name) {
+            var reg = new RegExp('(^|&)' + name + '=([^&]*)(&|$)'); //构造一个含有目标参数的正则表达式对象
+            var r = window.location.search.substr(1).match(reg); //匹配目标参数
+            if (r != null) return unescape(decodeURI(r[2]));
+            return null; //返回参数值
+        }
+
+        // 读取查询参数
+        const searchParams = new URLSearchParams(location.search);
+        const debug = searchParams.get('debug') !== '0';
+        const mapUrl = searchParams.get('map');
+        const reportUrl = searchParams.get('reportUrl') ?? 'http://aitank.sohurdc.com';
+
+        var battlelimittime = null != getUrlParam('battlelimittime') ? getUrlParam('battlelimittime') : 90; //默认最大的比赛时间150秒，可以开关控制
+        var mapinfo = '';
+        var mapmytankrank = 1;
+        var mapenemytankrank = 1;
+        var GameOver = false;
+        var aiRank = searchParams.get('aiRank') == 1; //是否开启aiRank
+        var BattleMode = 1 == getUrlParam('campaign') ? false : true; //默认开启互杀模式的
+        var eCount = getUrlParam('eCount');
+        var groupName = null != getUrlParam('groupName') ? getUrlParam('groupName') : null;
+        var battleid = null != getUrlParam('battleid') ? getUrlParam('battleid') : -1;
+        var modUI = null != getUrlParam('mod') ? true : false;
+        var bulletrank = null != getUrlParam('bulletrank') ? Number(getUrlParam('bulletrank')) : 20; // 默认子弹数上限为 20 发
+        var mapfile = '';
+        var equip = 0 == getUrlParam('equip') ? false : true; //默认开启装备增强
+        var FlagMode = 0 == getUrlParam('flag') ? false : true; //默认开启夺旗模式
+        const metallife = 300;
+        const bricklife = 18;
+        const grasslife = 4000;
+        const icelife = 50;
+        const blocklife = 9999;
+
+        const _tmp_weather_param = searchParams.get('weather');
+        // 天气总共有以下
+        const _tmp_weather_types = ['rain', 'snow', 'wind'];
+        /**
+         * @description 配置，aitank之类的配置，为了便于天气施加影响，提出此配置
+         * @notice 注意： 此为主程读写，暴露为getter的可使用下面的config
+         * */
+        const _configs = {
+            /**
+             * @description 游戏的模式 赛事系统透传给服务端，游戏不做处理，玩家亦可读取
+             * 1 => A组AIRank 2 -> B车轮战  3 -> 预决赛车轮战  4 -> 决赛  0 -> 未识别
+             * @type {1 | 2 | 3 | 4 | 0} gameMode
+             */
+            gameMode: (() => {
+                const mode = searchParams.get('mode');
+                if (mode === null) {
+                    // 猜一下是哪种
+                    if (aiRank) return 1;
+                    if (!BattleMode) return 2;
+                    else return 3;
+                }
+                const n = parseInt(mode, 10);
+                if (mode && !Object.is(NaN, n) && n > 0 && n < 5) {
+                    return n;
+                }
+                return 0;
+            })(),
+            /**
+             * @description 当前是否处于AIRank模式
+             * @type {boolean}
+             * */
+            isAIRank: aiRank,
+            /**
+             * @description 当前是否处于BattleMode模式
+             * @type {boolean}
+             * */
+            isBattleMode: BattleMode,
+            /**
+             * @description 当前是否处于夺旗模式
+             * @type {boolean}
+             * */
+            isFlagMode: FlagMode,
+            /**
+             * @description 天气可用字段
+             * @type {["rain", "snow", "wind"]}
+             * */
+            weatherTypes: _tmp_weather_types,
+            /**
+             * @description 当前天气
+             * @type {"rain" | "snow" | "wind"}
+             * */
+            currentWeather: _tmp_weather_types.includes(_tmp_weather_param) ? _tmp_weather_param : _tmp_weather_types[(Math.random() * 3) ^ 0],
+            /**
+             * @description Aitank的子弹是否处于暴击状态，当前雪天就是暴击
+             * @type {boolean}
+             * */
+            isAiSuperBullet: false,
+            /**
+             * @description aitank子弹速度
+             * @type {number}
+             * */
+            aiTankBulletSpeed: 10,
+            /**
+             * @description player 子弹速度
+             * @type {number}
+             * */
+            playerBulletSpeed: 10,
+            /**
+             * @description equip 道具位置坐标
+             * @type {{life: [number, number]; power: [number, number]; bullet: [number, number] | undefined; shield: [number, number] | undefined;}}
+             * */
+            equip: undefined,
+            /**
+             * @description flagArray 旗帜位置
+             * @type {[ number, number, number, number ][]} 数组元素分别对应左上角坐标及宽度，即：[x, y, width, height]
+             * */
+            flagArray: [],
+            /**
+             * @description 左侧选手当前击杀数据
+             * @type {number} playerAKill */
+            playerAKill: 0,
+            /**
+             * @description 右侧选手当前击杀数据
+             * @type {number} playerBKill */
+            playerBKill: 0,
+            /**
+             * @description 左侧选手当前夺旗数据
+             * @type {number} playerAFlag */
+            playerAFlag: 0,
+            /**
+             * @description 右侧选手当前夺旗数据
+             * @type {number} playerBFlag */
+            playerBFlag: 0,
+        };
+        const config = new Proxy(_configs, {
+            set(target, p, value, receiver) {
+                console.error('发生作弊，config配置不允许外部修改');
+                alert('fatal error');
+            }
+        });
+        // 非debug模式会关闭console.log
+        if (!debug) {
+            console.log = () => {};
+            console.error = () => {};
+            console.warn = () => {}
+        }
+        {
+            // 参数URL问题纠正,避免因mode和参数传递不正确导致游戏问题，优先以mode来check
+            if (_configs.gameMode === 4) {
+                // 如果mode是决赛，则一定开启互杀否则不开启
+                _configs.isBattleMode = true;
+            } else {
+                _configs.isBattleMode = false;
+            }
+            if (_configs.gameMode === 1) {
+                // 如果mode是AIRANK
+                _configs.isAIRank = true;
+                aiRank = true;
+            } else {
+                _configs.isAIRank = false;
+                aiRank = false;
+            }
+        }
+        /**
+         * @description 开始后注入天气
+         * 说明：
+         * 风 aitank移速加一
+         * 雪 player子弹速度加10%
+         * 雨 aitank处于暴击状态
+         *
+         * @param {HTMLCanvasElement} gameCanvasEl
+         */
+        function injectWeather(gameCanvasEl) {
+            if (!config.currentWeather) return;
+            const countsMap = new Map([
+                ['rain', 400],
+                ['snow', 100],
+                ['wind', 20]
+            ]);
+            // 使用天气
+            const weather = new Weather({
+                maskEl: gameCanvasEl,
+                remainTime: 15000, // 开始前的倒计时时间，ms
+                counts: countsMap.get(config.currentWeather)
+            });
+            // 开始天气时，图标开启
+            const img = new Image(60, 60);
+            const weatherTipEl = document.querySelector('.weather-tip');
+            switch (config.currentWeather) {
+                case 'rain':
+                    weather.setItemClass(Rain);
+                    weather.setEffect(() => {
+                        _configs.isAiSuperBullet = true;
+                        img.src = 'img/雨.png';
+                        weatherTipEl.appendChild(img);
+                    });
+                    break;
+                case 'snow':
+                    weather.setItemClass(Snow);
+                    weather.setEffect(() => {
+                        _configs.playerBulletSpeed *= 1.1;
+                        img.src = 'img/雪.png';
+                        weatherTipEl.appendChild(img);
+                    });
+                    break;
+                case 'wind':
+                    weather.setItemClass(Wind);
+                    weather.setEffect(() => {
+                        aTankCount.forEach(tank => (tank.speed += 1));
+                        img.src = 'img/风.png';
+                        weatherTipEl.appendChild(img);
+                    });
+                    break;
+            }
+            weather.setCountdownEffect(remainTime => console.log(remainTime));
+            weather.start();
+        }
+
+        /**
+         * @description 绘制旗帜，占据 4 个单元格，四周留出 10px 边缘
+         * @param { Image } img 旗帜图片
+         * @param { number } x 左上角坐标 X
+         * @param { number } y 左上角坐标 Y
+         */
+        function drawFlag(img, x, y) {
+            if(x > 0 && y > 0) {
+                ctx.drawImage(img, 0, 0, 50, 50, x + 10, y + 10, 80, 80);
+            }
+        }
+
+        if (debug) {
+            UIShowDebug();
+        }
+        UIShowMode(_configs.gameMode);
+
+        function injectRemoteScript(url) {
+            const s = document.createElement('script');
+            s.setAttribute('type', 'text/javascript');
+            s.src = url;
+            document.body.appendChild(s);
+        }
+
+        var playerAfile = getUrlParam('playerA');
+        if (null == getUrlParam('playerA')) {
+            injectRemoteScript('js/2022playerA.js');
+        } else {
+            injectRemoteScript(`https://sohu1024.bjcnc.scs.sohucs.com/code/${playerAfile}/2022playerAObfuscated.js`);
+        }
+
+        var playerBfile = getUrlParam('playerB');
+        if (null == getUrlParam('playerB')) {
+            injectRemoteScript('js/2022playerB.js');
+        } else {
+            injectRemoteScript(`https://sohu1024.bjcnc.scs.sohucs.com/code/${playerBfile}/2022playerBObfuscated.js`);
+        }
+        var rr = Math.floor(Math.random() * 25) + 1;
+        var bgm = Number(getUrlParam('bgm'));
+        if ((bgm >= 1 && bgm <= 25) || bgm == 31 || bgm == 32) {
+            rr = bgm;
+        }
+        document.write('<audio id="bgm"><source src="music/' + rr + '.mp3" type="audio/mp3"><\/audio>');
+
+        function readTextFile(file, callback) {
+            var rawFile = new XMLHttpRequest();
+            rawFile.overrideMimeType('application/json');
+            rawFile.open('GET', file, true);
+            rawFile.onreadystatechange = function () {
+                if (rawFile.readyState === 4 && rawFile.status == '200') {
+                    callback(rawFile.responseText);
+                }
+            };
+            rawFile.send(null);
+        }
+
+        function loadScript(src, fnSucc, fnFaild) {
+            var oAjax = new XMLHttpRequest();
+            oAjax.open('GET', src, true);
+            oAjax.send();
+            oAjax.onreadystatechange = function () {
+                if (oAjax.readyState == 4) {
+                    if (oAjax.status == 200) {
+                        fnSucc(oAjax.responseText);
+                    } else {
+                        fnFaild(oAjax.status);
+                    }
+                }
+            };
+        }
+
+        if (debug && !mapUrl) {
+            //检测是本地打开游戏，debug模式
+            document.getElementById('importbutton').innerHTML = '<input type="file" id="files" style="display: none" onchange="Aitankclass.fileImport();"><input type="button" id="fileImport" value="导入地图">';
+            $('#fileImport').click(function () {
+                $('#files').click();
+            });
+
+            function fileImport() {
+                //我文件的File对象
+                var selectedFile = document.getElementById('files').files[0];
+                var name = selectedFile.name; //读取选中文件的文件名
+                var size = selectedFile.size;
+                console.log('文件名:' + name + '大小:' + size);
+                mapfile = name;
+                var reader = new FileReader(); //这是核心,读取操作就是由它完成.
+                reader.readAsText(selectedFile);
+                reader.onload = function () {
+                    //当读取完成后回调这个函数,然后此时文件的内容存储到了result中,直接操作即可
+                    console.log(this.result);
+                    mapinfo = JSON.parse(this.result);
+                    mapmytankrank = mapinfo.info.mytankrank;
+                    mapenemytankrank = mapinfo.info.enemytankrank;
+                    bulletrank = 6 == bulletrank && Number(mapinfo.info.bulletrank) > 0 ? Number(mapinfo.info.bulletrank) : bulletrank;
+                    var mapeCount = undefined == mapinfo.info.enemytankcount ? 21 : Number(mapinfo.info.enemytankcount);
+                    eCount = null == eCount ? mapeCount : Number(eCount);
+                };
+            }
+        } else {
+            mapfile = mapUrl;
+            loadScript(
+                mapUrl,
+                function (suc) {
+                    console.log(suc);
+                    mapinfo = JSON.parse(suc);
+                    mapmytankrank = mapinfo.info.mytankrank;
+                    mapenemytankrank = mapinfo.info.enemytankrank;
+                    bulletrank = 6 == bulletrank && Number(mapinfo.info.bulletrank) > 0 ? Number(mapinfo.info.bulletrank) : bulletrank;
+                    var mapeCount = undefined == mapinfo.info.enemytankcount ? 21 : Number(mapinfo.info.enemytankcount);
+                    eCount = null == eCount ? mapeCount : Number(eCount);
+                },
+                function (fail) {
+                    console.log(fail);
+                }
+            );
+        }
+
+        var tagmusic = document.getElementById('tagmusic');
+        var startMusic = document.getElementById('startMusic');
+        var remix = document.getElementById('remix');
+        var attack = document.getElementById('attack');
+        var boom = document.getElementById('boom');
+        var superboom = document.getElementById('superboom');
+        var over = document.getElementById('over');
+        var timer = null;
+        var splash = null;
+        var playerNum = 0;
+        var player1Die = true,
+            player2Die = true,
+            passNum = 0; //通关数
+        var playerAHit = 0, //play1击中坦克数量
+            playerBHit = 0; //play2击中坦克数量
+        var playerAKill = 0;
+        playerBKill = 0;
+        var playerAFlag = 0, // player1夺旗数量
+            playerBFlag = 0; // player2夺旗数量
+        var remaintime = 10 * 1000; //30
+        var curremaintime = 0;
+
+        var aworld = []; //阻挡的位置
+        var bwidth = 4000;
+        var bheight = 1800;
+        var playerAFire = 0;
+        var playerBFire = 0;
+        var player1birth = undefined;
+        var player2birth = undefined;
+        var enemybirth = new Array();
+        //刷新画面
+        var timebegin = undefined;
+        var playplayerALife = 0;
+        var playerBLife = 0;
+        var playerApower = 0;
+        var playerBpower = 0;
+        var playerACostTime = 0;
+        var playerBCostTime = 0;
+        var tick = 0;
+        var paddlife = [-100, -100];
+        var paddbullet = [-100, -100];
+        var paddpower = [-100, -100];
+        var paddshield = [-100, -100];
+        var flagList = [];
+
+        $('#twoPlayer').on('click', function () {
+            if (!mapfile) {
+                alert('无地图');
+                return;
+            }
+            // 隐藏开始
+            document.querySelector('.start-container').classList.add('leave');
+            //选择2个玩家
+            playerNum = 2;
+            // if (tagmusic.paused) {
+            //   //判读是否播放
+            //   tagmusic.paused = false;
+            //   tagmusic.play();
+            // }
+            audioplay(startMusic);
+
+            if (false == debug) {
+                //如果游戏是正式的，就要检查比赛号，battleid,和最早的比赛规则是一样的
+                if (null == battleid && false == aiRank) {
+                    alert('请输入比赛编号');
+                    return;
+                }
+                $.ajax({
+                    async: false,
+                    type: 'GET',
+                    url: reportUrl + '/api/y2023/gameExist?_tc=sZXczvbznhjasdzdddasfgddsZXcvddbnhjhtyredwasDFGHJdYTfREaWAsa&type=' + _configs.gameMode + '&battleId=' + Number(battleid) + '&groupName=' + groupName + '&aiRank=' + aiRank + '&eCount=' + eCount + '&debug=' + debug,
+                    //data:jsonobj,
+                    //dataType: 'json',
+                    contentType: 'application/json;charset=UTF-8',
+                    success: function (xhr, textStatus, errorThrown) {
+                        if (true == xhr.isExist) {
+                            alert('比赛号重复');
+                            return;
+                        }
+                    },
+                    error: function (xhr, textStatus, errorThrown) {
+                        alert(textStatus);
+                    }
+                });
+            }
+            if (true == debug || null != battleid) {
+                player1Die = false;
+                player2Die = false;
+                passNum = 1;
+                playerAHit = 0;
+                playerBHit = 0;
+
+                //creatmetal(aworld)
+                creatworld(mapinfo);
+                createequip(mapinfo);
+                createMyTank(100);
+                if (false == aiRank) {
+                    createMyTank(200);
+                } else {
+                    player2Die = true;
+                }
+
+                // 注入天气 todo: 这里暂时测试snow
+                injectWeather(document.getElementById('canvas'));
+
+                var audio = document.getElementById('bgm');
+                bgmplay(eval(audio));
+                for (var i = 0; i < passNum * eCount; i++) {
+                    createTank(i);
+                }
+                timer = setInterval(function () {
+                    loop();
+                }, 20);
+            }
+        });
+
+        var canvas = document.getElementById('canvas');
+        var ctx = canvas.getContext('2d');
+        var screenX = bwidth; //window.innerWidth,
+        var screenY = bheight; //window.innerHeight-200,
+        (tankWidth = 50), //坦克宽度
+            (bulletWidth = 10); //子弹宽度
+        canvas.width = screenX;
+        canvas.height = screenY;
+
+        var tankID = 1000;
+        var aTankClass = [
+            { rank: 1, color: 'green' },
+            { rank: 2, color: 'blue' },
+            { rank: 3, color: 'red' },
+            {
+                rank: 4,
+                color: 'block'
+            }
+        ]; //敌军Tank种类
+        var aTankCount = []; //存储所有敌方Tank
+        var aMyTankCount = []; //存储所有我方Tank
+        var aBulletCount = []; //存储所有敌方坦克子弹
+        var aMyBulletCount1 = []; //存储所有子弹
+        var aMyBulletCount2 = []; //存储所有子弹
+
+        let playerAName = '',
+            playerBName = ''; // 存储land返回的队名
+        var img0 = new Image(), //敌军坦克
+            img1 = new Image(),
+            img2 = new Image(),
+            img3 = new Image(),
+            img4 = new Image(),
+            img5 = new Image(),
+            img6 = new Image(),
+            img7 = new Image(),
+            myTankImg0 = new Image(), //我方坦克
+            myTankImg1 = new Image(),
+            myTankImg2 = new Image(),
+            myTankImg3 = new Image(),
+            myTankImg4 = new Image(), //我方坦克
+            myTankImg5 = new Image(),
+            myTankImg6 = new Image(),
+            myTankImg7 = new Image(),
+            myTank2Img0 = new Image(), //我方坦克2
+            myTank2Img1 = new Image(),
+            myTank2Img2 = new Image(),
+            myTank2Img3 = new Image(),
+            myTank2Img4 = new Image(), //我方坦克2
+            myTank2Img5 = new Image(),
+            myTank2Img6 = new Image(),
+            myTank2Img7 = new Image(),
+            star = new Image();
+        boomImg = new Image(); //爆炸
+        superboomImg = new Image(); //爆炸
+        metal = new Image();
+        metal1 = new Image();
+        metal2 = new Image();
+        water = new Image();
+        water1 = new Image();
+        water2 = new Image();
+        grass0 = new Image();
+        grass1 = new Image();
+        grass2 = new Image();
+        grass3 = new Image();
+        grass4 = new Image();
+        grass5 = new Image();
+        grassshake1 = new Image();
+        grassshake2 = new Image();
+        ice0 = new Image();
+        ice1 = new Image();
+        ice2 = new Image();
+        ice3 = new Image();
+        ice4 = new Image();
+        ice5 = new Image();
+        icerenew = new Image();
+        iceshake1 = new Image();
+        iceshake2 = new Image();
+        brick = new Image();
+        brick1 = new Image();
+        brick2 = new Image();
+        brickrenew = new Image();
+        earth0 = new Image();
+        earth1 = new Image();
+        earth2 = new Image();
+        breakice = new Image();
+        breakbrick = new Image();
+        flag = new Image();
+
+        addlife = new Image();
+        addbullet = new Image();
+        addpower = new Image();
+        addshield = new Image(); // 防护罩道具
+        tankshield = new Image(); // 坦克的防护罩特效
+
+        img0.src = 'img/tank-img0.png';
+        img1.src = 'img/tank-img1.png';
+        img2.src = 'img/tank-img2.png';
+        img3.src = 'img/tank-img3.png';
+        img4.src = 'img/tank-img4.png';
+        img5.src = 'img/tank-img5.png';
+        img6.src = 'img/tank-img6.png';
+        img7.src = 'img/tank-img7.png';
+
+        myTankImg0.src = 'img/mytank-img0.png';
+        myTankImg1.src = 'img/mytank-img1.png';
+        myTankImg2.src = 'img/mytank-img2.png';
+        myTankImg3.src = 'img/mytank-img3.png';
+        myTankImg4.src = 'img/mytank-img4.png';
+        myTankImg5.src = 'img/mytank-img5.png';
+        myTankImg6.src = 'img/mytank-img6.png';
+        myTankImg7.src = 'img/mytank-img7.png';
+        myTank2Img0.src = 'img/mytank2-img0.png';
+        myTank2Img1.src = 'img/mytank2-img1.png';
+        myTank2Img2.src = 'img/mytank2-img2.png';
+        myTank2Img3.src = 'img/mytank2-img3.png';
+        myTank2Img4.src = 'img/mytank2-img4.png';
+        myTank2Img5.src = 'img/mytank2-img5.png';
+        myTank2Img6.src = 'img/mytank2-img6.png';
+        myTank2Img7.src = 'img/mytank2-img7.png';
+        boomImg.src = 'img/boom-img.png';
+        superboomImg.src = 'img/superboom-img.png';
+        metal.src = 'img/FangDanBi0.png';
+        metal1.src = 'img/FangDanBi1.png';
+        metal2.src = 'img/FangDanBi2.png';
+        water.src = 'img/shui.png';
+        water1.src = 'img/shui1.png';
+        water2.src = 'img/shui2.png';
+        grass0.src = 'img/GuanMuCong0.png';
+        grass1.src = 'img/GuanMuCong1.png';
+        grass2.src = 'img/GuanMuCong2.png';
+        grass3.src = 'img/GuanMuCong3.png';
+        grass4.src = 'img/GuanMuCong4.png';
+        grass5.src = 'img/GuanMuCong5.png';
+        grassshake1.src = 'img/GuanMuCongshake1.png';
+        grassshake2.src = 'img/GuanMuCongshake2.png';
+        ice0.src = 'img/BingShuang0.png';
+        ice1.src = 'img/BingShuang1.png';
+        ice2.src = 'img/BingShuang2.png';
+        ice3.src = 'img/BingShuang3.png';
+        ice4.src = 'img/BingShuang4.png';
+        ice5.src = 'img/BingShuang5.png';
+        icerenew.src = 'img/BingShuangrenew.png';
+        iceshake1.src = 'img/BingShuangshake1.png';
+        iceshake2.src = 'img/BingShuangshake2.png';
+        star.src = 'img/star.png';
+        brick.src = 'img/brick.png';
+        brick1.src = 'img/brick1.png';
+        brick2.src = 'img/brick2.png';
+        brickrenew.src = 'img/brickrenew.png';
+        earth0.src = 'img/earth0.png';
+        earth1.src = Math.random() > 0.5 ? 'img/earth0.png' : 'img/earth2.png';
+        earth2.src = 'img/earth2.png';
+        if (true == modUI) {
+            earth0.src = 'img/earth' + Math.floor(Math.random() * 3 + 1) + '.png';
+            earth1.src = 'img/earth' + Math.floor(Math.random() * 3 + 1) + '.png';
+            earth2.src = 'img/earth' + Math.floor(Math.random() * 3 + 1) + '.png';
+        }
+        flag.src = 'img/夺旗.png';
+
+        addlife.src = 'img/addlife.png';
+        addbullet.src = 'img/addbullet.png';
+        addpower.src = 'img/addpower.png';
+        addshield.src = 'img/护盾.png';
+        tankshield.src = 'img/防护罩.png'
+        breakice.src = 'img/冰渣.png'
+        breakbrick.src = 'img/土渣.png'
+
+        const earthrandom1 = Math.floor(Math.random() * 6 + 1) % 4;
+        const earthrandom2 = Math.floor(earthrandom1 * 3 + 1) % 3;
+        const earthrandom3 = Math.floor(earthrandom2 * 6 + 1) % 8;
+
+        function audioplay(play) {
+            var array = new Array();
+            array.push('tagmusic');
+            array.push('startMusic');
+            array.push('remix');
+            array.push('attack');
+            array.push('boom');
+            array.push('superboom');
+            array.push('over');
+            array.forEach(element => {
+                var r = document.getElementById(element);
+                if (null != r) {
+                    r.pause();
+                }
+            });
+            play.play();
+        }
+
+        function bgmplay(play) {
+            var array = new Array();
+            array.push('bgm');
+            array.forEach(element => {
+                var r = document.getElementById(element);
+                if (null != r) {
+                    r.pause();
+                }
+            });
+            if (undefined != play && '' != play) {
+                play.play();
+                play.volume = 0.4;
+                play.loop = true;
+            }
+        }
+
+        function creatworld(mapinfo) {
+            rwidth = mapinfo.info.rwidth ? Number(mapinfo.info.rwidth) : 80;
+            rheight = mapinfo.info.rheight ? Number(mapinfo.info.rheight) : 36;
+            for (var i = 0; i < mapinfo.blocks.length; i++) {
+                var x = Math.floor(i % rwidth) * 50;
+                var y = Math.floor(i / rwidth) * 50;
+                if (1 == mapinfo.blocks[i]) {
+                    ctx.drawImage(this.metal, x, y, 50, 50);
+                    aworld.push([x, y, 50, 50, mapinfo.blocks[i], metallife]);
+                }
+                if (2 == mapinfo.blocks[i]) {
+                    ctx.drawImage(this.water, x, y, 50, 50);
+                    aworld.push([x, y, 50, 50, mapinfo.blocks[i], blocklife]);
+                }
+                if (3 == mapinfo.blocks[i]) {
+                    ctx.drawImage(this.grass0, x, y, 50, 50);
+                    aworld.push([x, y, 50, 50, mapinfo.blocks[i], grasslife]);
+                }
+                if (4 == mapinfo.blocks[i]) {
+                    ctx.drawImage(this.ice0, x, y, 50, 50);
+                    aworld.push([x, y, 50, 50, mapinfo.blocks[i], icelife]);
+                }
+                if (5 == mapinfo.blocks[i]) {
+                    //A出生
+                    player1birth = [x, y];
+                    aworld.push([x, y, 50, 50, mapinfo.blocks[i], blocklife]);
+                }
+                if (6 == mapinfo.blocks[i]) {
+                    //B出生
+                    player2birth = [x, y];
+                    aworld.push([x, y, 50, 50, mapinfo.blocks[i], blocklife]);
+                }
+                if (7 == mapinfo.blocks[i]) {
+                    //emeny出生
+                    enemybirth.push([x, y]);
+                    aworld.push([x, y, 50, 50, mapinfo.blocks[i], blocklife]);
+                }
+                if (8 == mapinfo.blocks[i]) {
+                    ctx.drawImage(this.brick, x, y, 50, 50);
+                    aworld.push([x, y, 50, 50, mapinfo.blocks[i], bricklife]);
+                }
+                if (9 == mapinfo.blocks[i]) {
+                    //再生砖
+                    ctx.drawImage(this.brickrenew, x, y, 50, 50);
+                    aworld.push([x, y, 50, 50, mapinfo.blocks[i], bricklife]);
+                }
+                if (10 == mapinfo.blocks[i]) {
+                    //再生冰
+                    ctx.drawImage(this.icerenew, x, y, 50, 50);
+                    aworld.push([x, y, 50, 50, mapinfo.blocks[i], icelife]);
+                }
+                if (11 == mapinfo.blocks[i]) {
+                    //旗帜
+                    if (FlagMode) {
+                        flagList.push([x, y, 100, 100]);
+                    }
+                    aworld.push([x, y, 50, 50, mapinfo.blocks[i], blocklife]);
+                }
+                if (0 == mapinfo.blocks[i]) {
+                    //emeny出生
+                    aworld.push([x, y, 50, 50, 100 + i, blocklife]);
+                }
+            }
+        }
+
+        // 初始化道具位置
+        function createequip(mapInfo) {
+            var length =  mapinfo.blocks.length,
+                rwidth = mapinfo.info.rwidth ? Number(mapinfo.info.rwidth) : 80;
+                rheight = mapinfo.info.rheight ? Number(mapinfo.info.rheight) : 36;
+            function initPos() {
+                let index = Math.floor(Math.random() *  mapinfo.blocks.length);
+                while (mapInfo.blocks[index] !== 0) {
+                    // 道具只能放置在坦克能够到达的地方
+                    index = Math.floor(Math.random() *  mapinfo.blocks.length);
+                }
+                var x = Math.floor(index % rwidth) * 50;
+                var y = Math.floor(index / rwidth) * 50;
+                return [x, y];
+            }
+            paddlife = initPos();
+            paddbullet = initPos();
+            paddpower = initPos();
+            paddshield = initPos();
+        }
+
+        function creatmetal(aworld) {
+            var px = bwidth; //window.innerWidth
+            var py = bheight; //window.innerHeight-200
+
+            aworld.push([px / 4 - 50, py / 4 - 50, 100, 100]);
+            aworld.push([(px * 3) / 4 - 50, py / 4 - 50, 100, 100]);
+            aworld.push([px / 4 - 50, (py * 3) / 4 - 50, 100, 100]);
+            aworld.push([(px * 3) / 4 - 50, (py * 3) / 4 - 50, 100, 100]);
+            for (var i = 0; i < aworld.length; i++) {
+                ctx.drawImage(this.metal, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+            }
+        }
+
+        function collisionWorld(x, y, r, type, tankId) {
+            for (var i = 0; i < aworld.length; i++) {
+                if (aworld[i][5] <= 0 && 8 == aworld[i][4]) {
+                    //aworld.splice(i,1);
+                    aworld[i][4] = 100 + i;
+                }
+            }
+            for (var i = 0; i < aworld.length; i++) {
+                if ('tank' == type) {
+                    //草木碾压效果
+                    if (3 == aworld[i][4] && x > aworld[i][0] - r && x < aworld[i][0] + aworld[i][2] && y > aworld[i][1] - r && y < aworld[i][1] + aworld[i][3]) {
+                        aworld[i][5] = aworld[i][5] - 3;
+                    }
+                    //撞击冰效果
+                    if (4 == aworld[i][4] && aworld[i][5] > 0 && x > aworld[i][0] - r && x < aworld[i][0] + aworld[i][2] && y > aworld[i][1] - r && y < aworld[i][1] + aworld[i][3]) {
+                        aworld[i][5] = aworld[i][5] - 2;
+                        ctx.drawImage(breakice, aworld[i][0] + Math.random() * 50, aworld[i][1] + Math.random() * 50, 30, 30);
+                        if (aworld[i][5] <= 0) {
+                            //冰打碎了，需要等待时间重生
+                            aworld[i][5] = -100;
+                        }
+                        return true;
+                    }
+                    //撞击冰效果
+                    if (10 == aworld[i][4] && x > aworld[i][0] - r && x < aworld[i][0] + aworld[i][2] && y > aworld[i][1] - r && y < aworld[i][1] + aworld[i][3]) {
+                        aworld[i][5] = aworld[i][5] - 2;
+                        ctx.drawImage(breakice, aworld[i][0] + Math.random() * 50, aworld[i][1] + Math.random() * 50, 30, 30);
+                        if (aworld[i][5] <= 0) {
+                            //冰打碎了，需要等待时间重生
+                            aworld[i][5] = -100;
+                        }
+                        return true;
+                    }
+                    //碰撞金属
+                    if ((1 == aworld[i][4] || 2 == aworld[i][4]) && x > aworld[i][0] - r && x < aworld[i][0] + aworld[i][2] && y > aworld[i][1] - r && y < aworld[i][1] + aworld[i][3]) {
+                        return true;
+                    }
+                    //碰撞墙体
+                    if (((8 == aworld[i][4] && aworld[i][5] > 0) || 2 == aworld[i][4]) && x > aworld[i][0] - r && x < aworld[i][0] + aworld[i][2] && y > aworld[i][1] - r && y < aworld[i][1] + aworld[i][3]) {
+                        aworld[i][5] = aworld[i][5] - 0.1;
+                        ctx.drawImage(breakbrick, aworld[i][0] + Math.random() * 50, aworld[i][1] + Math.random() * 50, 30, 30);
+                        return true;
+                    }
+                    //碰撞墙体
+                    if (((9 == aworld[i][4] && aworld[i][5] > 0) || 2 == aworld[i][4]) && x > aworld[i][0] - r && x < aworld[i][0] + aworld[i][2] && y > aworld[i][1] - r && y < aworld[i][1] + aworld[i][3]) {
+                        aworld[i][5] = aworld[i][5] - 1.0;
+                        ctx.drawImage(breakbrick, aworld[i][0] + Math.random() * 50, aworld[i][1] + Math.random() * 50, 30, 30);
+                        if (aworld[i][5] <= 0) {
+                            //冰打碎了，需要等待时间重生
+                            aworld[i][5] = -50;
+                        }
+                        return true;
+                    }
+                } else if ('Bullet' == type) {
+                    //打击金属
+                    if (1 == aworld[i][4] && x > aworld[i][0] - r && x < aworld[i][0] + aworld[i][2] && y > aworld[i][1] - r && y < aworld[i][1] + aworld[i][3]) {
+                        aworld[i][5]--;
+                        return true;
+                    }
+                    //打击墙体
+                    if (8 == aworld[i][4] && x > aworld[i][0] - r && x < aworld[i][0] + aworld[i][2] && y > aworld[i][1] - r && y < aworld[i][1] + aworld[i][3]) {
+                        aworld[i][5]--;
+                        ctx.drawImage(breakbrick, aworld[i][0] + Math.random() * 50, aworld[i][1] + Math.random() * 50, 30, 30);
+                        return true;
+                    }
+                    //打击墙体
+                    if (9 == aworld[i][4] && aworld[i][5] > 0 && x > aworld[i][0] - r && x < aworld[i][0] + aworld[i][2] && y > aworld[i][1] - r && y < aworld[i][1] + aworld[i][3]) {
+                        aworld[i][5] = aworld[i][5] - 2;
+                        ctx.drawImage(breakbrick, aworld[i][0] + Math.random() * 50, aworld[i][1] + Math.random() * 50, 30, 30);
+                        return true;
+                    }
+                    //打击冰块
+                    if (4 == aworld[i][4] && aworld[i][5] > 0 && x > aworld[i][0] - r && x < aworld[i][0] + aworld[i][2] && y > aworld[i][1] - r && y < aworld[i][1] + aworld[i][3]) {
+                        aworld[i][5] = aworld[i][5] - 9;
+                        ctx.drawImage(breakice, aworld[i][0] + Math.random() * 50, aworld[i][1] + Math.random() * 50, 30, 30);
+                        if (aworld[i][5] <= 0) {
+                            //冰打碎了，需要等待时间重生
+                            aworld[i][5] = -100;
+                        }
+                        return true;
+                    }
+                    //打击冰块
+                    if (10 == aworld[i][4] && aworld[i][5] > 0 && x > aworld[i][0] - r && x < aworld[i][0] + aworld[i][2] && y > aworld[i][1] - r && y < aworld[i][1] + aworld[i][3]) {
+                        aworld[i][5] = aworld[i][5] - 9;
+                        ctx.drawImage(breakice, aworld[i][0] + Math.random() * 50, aworld[i][1] + Math.random() * 50, 30, 30);
+                        if (aworld[i][5] <= 0) {
+                            //冰打碎了，需要等待时间重生
+                            aworld[i][5] = -100;
+                        }
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        function createMyTank(id) {
+            var id = id,
+                //rank = (1==mapmytankrank) ? 1:1+Math.floor(Math.random()*mapmytankrank);
+                rank = 1 == mapmytankrank ? 1 : 1 + mapmytankrank;
+            (color = id == 100 ? 'yellow' : 'blue'), (speed = 7), (direction = 0), (X = id == 100 ? 400 : screenX - 400), (Y = 400);
+            if (undefined != player1birth && 100 == id) {
+                X = player1birth[0];
+                Y = player1birth[1];
+            }
+            if (undefined != player2birth && 200 == id) {
+                X = player2birth[0];
+                Y = player2birth[1];
+            }
+            var tank = new MyTank(id, rank, color, speed, direction, X, Y);
+            aMyTankCount.push(tank);
+        }
+
+        //MyTank构造
+        function MyTank(id, rank, color, speed, direction, X, Y) {
+            this.id = id; //坦克编号
+            this.rank = rank; //坦克级别
+            this.Hp = rank * 10; //血量
+            this.color = color;
+            this.speed = speed;
+            this.direction = direction; //方向
+            this.poweradd = 0;
+            this.bulletadd = 0; // 道具加成 - 子弹上限数
+            this.shieldadd = false; // 防护罩
+            this.bulletTick = 0; // 子弹发射tick
+            this.bulletTickLimit = 20; // 子弹发射间隔
+            this.X = X; //X坐标
+            this.Y = Y; //Y轴坐标
+            this.img = 100 == id ? myTankImg0 : myTank2Img0;
+            this.star = star;
+            this.draw = function () {
+                ctx.drawImage(this.img, 0, 0, 50, 50, this.X, this.Y, tankWidth, tankWidth);
+                if(true == this.shieldadd && tick % 2 == 0) {
+                    // 绘制防护罩特效闪烁
+                    ctx.drawImage(tankshield, 0, 0, 50, 50, this.X - 20, this.Y - 20, tankWidth + 40, tankWidth + 40);
+                }
+                for (var i = 1; i < this.Hp / 10; i++) {
+                    ctx.drawImage(this.star, 0, 0, 32, 32, this.X + (i - 1) * 16, this.Y + 50, 25, 25);
+                }
+            };
+        }
+
+        function createTank(i) {
+            var rank = 1 == mapenemytankrank ? 0 : 1 + Math.floor(Math.random() * mapenemytankrank);
+            var speed = 2;
+            var direction = Math.round(Math.random() * 3);
+            var randomNum = Math.round(Math.random() * 15);
+            var ii = i % enemybirth.length;
+            var tank = i % 2 == 0 ? new Tank(++tankID, aTankClass[rank]['rank'], aTankClass[rank]['color'], speed, direction, enemybirth[ii][0], enemybirth[ii][1]) : new Tank(++tankID, aTankClass[rank]['rank'], aTankClass[rank]['color'], speed, direction, enemybirth[ii][0], enemybirth[ii][1]); //screenX -10*randomNum - 50, 10 * Math.round(Math.random()*15));
+            aTankCount.push(tank);
+        }
+
+        //Tank构造
+        function Tank(id, rank, color, speed, direction, X, Y) {
+            this.id = id; //坦克编号
+            this.rank = rank; //坦克级别
+            this.Hp = rank * 10; //血量
+            this.color = color;
+            this.speed = speed;
+            this.direction = direction; //方向
+            this.X = X; //X坐标
+            this.Y = Y; //Y轴坐标
+            this.img = img0;
+            this.star = star;
+            this.time = Math.floor(Math.random() * 50);
+            this.draw = function () {
+                ctx.drawImage(this.img, 0, 0, 50, 50, this.X, this.Y, tankWidth, tankWidth);
+                for (var i = 1; i < this.Hp / 10; i++) {
+                    ctx.drawImage(this.star, 0, 0, 32, 32, this.X + (i - 1) * 16, this.Y + 50, 25, 25);
+                }
+            };
+            this.move = function () {
+                if (this.direction == 0) {
+                    var ret = collisionWorld(this.X, this.Y - this.speed, tankWidth, 'tank', this.id);
+                    if (false == ret) {
+                        this.Y = this.Y - this.speed < 0 ? 0 : this.Y - this.speed;
+                    }
+                    this.img = 1 == tick % 2 ? img0 : img4;
+                } else if (this.direction == 1) {
+                    var ret = collisionWorld(this.X + this.speed, this.Y, tankWidth, 'tank', this.id);
+                    if (false == ret) {
+                        this.X = this.X + this.speed > screenX - tankWidth ? screenX - tankWidth : this.X + this.speed;
+                    }
+                    this.img = 1 == tick % 2 ? img1 : img5;
+                } else if (this.direction == 2) {
+                    var ret = collisionWorld(this.X, this.Y + this.speed, tankWidth, 'tank', this.id);
+                    if (false == ret) {
+                        this.Y = this.Y + this.speed > screenY - tankWidth ? screenY - tankWidth : this.Y + this.speed;
+                    }
+                    this.img = 1 == tick % 2 ? img2 : img6;
+                } else if (this.direction == 3) {
+                    var ret = collisionWorld(this.X - this.speed, this.Y, tankWidth, 'tank', this.id);
+                    if (false == ret) {
+                        this.X = this.X - this.speed < 0 ? 0 : this.X - this.speed;
+                    }
+
+                    this.img = 1 == tick % 2 ? img3 : img7;
+                }
+            };
+            this.changeDir = function () {
+                var num = Math.floor(Math.random() * 100);
+                if (num >= 98) {
+                    this.direction = (this.direction + 1) % 4;
+                } else if (num >= 96 && num < 98) {
+                    this.direction = (this.direction + 2) % 4;
+                } else if (num >= 94 && num < 96) {
+                    this.direction = (this.direction + 3) % 4;
+                }
+            };
+            this.fire = function () {
+                if (this.time == 50) {
+                    this.time = 0;
+                    // var speed = 10;
+                    var rank = 1;
+                    var direction = this.direction;
+                    if (this.direction == 0) {
+                        var X = this.X + 25;
+                        var Y = this.Y - 5;
+                    } else if (this.direction == 1) {
+                        var X = this.X + 55;
+                        var Y = this.Y + 25;
+                    } else if (this.direction == 2) {
+                        var X = this.X + 25;
+                        var Y = this.Y + 55;
+                    } else if (this.direction == 3) {
+                        var X = this.X - 5;
+                        var Y = this.Y + 25;
+                    }
+                    var bullet = new Bullet(this.id, rank, direction, X, Y, 'ai');
+                    aBulletCount.push(bullet);
+                } else {
+                    this.time++;
+                }
+            };
+        }
+
+        //子弹构造
+        function Bullet(name, rank, direction, X, Y, belong) {
+            // belong => ai | player
+            this.name = name; //子弹归属
+            // this.speed = speed;//子弹速度
+            this.rank = rank; //子弹级别
+            this.direction = direction; //子弹方向
+            this.X = X; //子弹坐标
+            this.Y = Y;
+
+            this.color = name > 300 ? 'yellow' : 'skyblue'; //子弹颜色
+            if (name == 200) this.color = 'red';
+            const bulletSpeed = belong === 'ai' ? _configs.aiTankBulletSpeed : _configs.playerBulletSpeed;
+            this.speed = bulletSpeed;
+            this.move = function () {
+                if (this.direction == 0) {
+                    this.Y -= bulletSpeed;
+                } else if (this.direction == 1) {
+                    this.X += bulletSpeed;
+                } else if (this.direction == 2) {
+                    this.Y += bulletSpeed;
+                } else if (this.direction == 3) {
+                    this.X -= bulletSpeed;
+                }
+            };
+            this.draw = function () {
+                ctx.beginPath();
+                ctx.fillStyle = this.color;
+                ctx.arc(this.X, this.Y, 5, 0, 2 * Math.PI, false);
+                ctx.fill();
+                ctx.closePath();
+            };
+        }
+
+        //控制Tank
+        var myTankUp = false,
+            myTankDown = false,
+            myTankLeft = false,
+            myTankRight = false,
+            myTank2Up = false,
+            myTank2Down = false,
+            myTank2Left = false,
+            myTank2Right = false;
+        document.onkeydown = function (ev) {
+            for (var n = 0; n < aMyTankCount.length; n++) {
+                if (!player1Die && aMyTankCount[n]['id'] == 100) {
+                    var myTank = aMyTankCount[n];
+                }
+            }
+
+            //tank1移动
+            if (!player1Die && ev.keyCode == 87) {
+                //上移动
+                myTankUp = true;
+                myTankDown = false;
+                myTankRight = false;
+                myTankLeft = false;
+            } else if (!player1Die && ev.keyCode == 83) {
+                //下移动
+                myTankDown = true;
+                myTankRight = false;
+                myTankLeft = false;
+                myTankUp = false;
+            } else if (!player1Die && ev.keyCode == 68) {
+                //右移动
+                myTankRight = true;
+                myTankUp = false;
+                myTankDown = false;
+                myTankLeft = false;
+            } else if (!player1Die && ev.keyCode == 65) {
+                //左移动
+                myTankLeft = true;
+                myTankUp = false;
+                myTankDown = false;
+                myTankRight = false;
+            }
+            if (!player1Die && ev.keyCode == 32) {
+                // var speed = 10;//定义子弹速度
+                var rank = 1; //定义子弹级别（威力）
+                var direction = myTank['direction'];
+                if (myTank['direction'] == 0) {
+                    var X = myTank['X'] + 25;
+                    var Y = myTank['Y'] - 5;
+                } else if (myTank['direction'] == 1) {
+                    var X = myTank['X'] + 55;
+                    var Y = myTank['Y'] + 25;
+                } else if (myTank['direction'] == 2) {
+                    var X = myTank['X'] + 25;
+                    var Y = myTank['Y'] + 55;
+                } else if (myTank['direction'] == 3) {
+                    var X = myTank['X'] - 5;
+                    var Y = myTank['Y'] + 25;
+                }
+                var bullet = new Bullet(myTank['id'], rank, direction, X, Y, 'player'); //生成子弹
+                if (aMyBulletCount1.length < bulletrank + myTank.bulletadd && myTank['bulletTick'] >= myTank["bulletTickLimit"]) {
+                    //audioplay(attack)
+                    aMyBulletCount1.push(bullet);
+                    myTank['bulletTick'] = 0;
+                    playerAFire++;
+                }
+            }
+
+            if (playerNum == 2) {
+                for (var n = 0; n < aMyTankCount.length; n++) {
+                    if (aMyTankCount[n]['id'] == 200) {
+                        var myTank2 = aMyTankCount[n];
+                    }
+                }
+
+                //tank2移动
+                if (!player2Die && ev.keyCode == 38) {
+                    //上移动
+                    myTank2Up = true;
+                    myTank2Down = false;
+                    myTank2Right = false;
+                    myTank2Left = false;
+                } else if (!player2Die && ev.keyCode == 40) {
+                    //下移动
+                    myTank2Down = true;
+                    myTank2Up = false;
+                    myTank2Right = false;
+                    myTank2Left = false;
+                } else if (!player2Die && ev.keyCode == 39) {
+                    //右移动
+                    myTank2Right = true;
+                    myTank2Up = false;
+                    myTank2Down = false;
+                    myTank2Left = false;
+                } else if (!player2Die && ev.keyCode == 37) {
+                    //左移动
+                    myTank2Left = true;
+                    myTank2Up = false;
+                    myTank2Down = false;
+                    myTank2Right = false;
+                }
+                if (!player2Die && ev.keyCode == 8) {
+                    // var speed = 10;//定义子弹速度
+                    var rank = 1; //定义子弹级别（威力）
+                    var direction = myTank2['direction'];
+                    if (myTank2['direction'] == 0) {
+                        var X = myTank2['X'] + 25;
+                        var Y = myTank2['Y'] - 5;
+                    } else if (myTank2['direction'] == 1) {
+                        var X = myTank2['X'] + 55;
+                        var Y = myTank2['Y'] + 25;
+                    } else if (myTank2['direction'] == 2) {
+                        var X = myTank2['X'] + 25;
+                        var Y = myTank2['Y'] + 55;
+                    } else if (myTank2['direction'] == 3) {
+                        var X = myTank2['X'] - 5;
+                        var Y = myTank2['Y'] + 25;
+                    }
+                    var bullet = new Bullet(myTank2['id'], rank, direction, X, Y, 'player'); //生成子弹
+                    if (aMyBulletCount2.length < bulletrank + myTank2.bulletadd && myTank2['bulletTick'] >= myTank2["bulletTickLimit"]) {
+                        aMyBulletCount2.push(bullet);
+                        myTank2['bulletTick'] = 0;
+                        playerBFire++;
+                    }
+                }
+            }
+        };
+        document.onkeyup = function (ev) {
+            if (ev.keyCode == 87 || ev.keyCode == 65 || ev.keyCode == 68 || ev.keyCode == 83) {
+                //上移动
+                myTankUp = false;
+                myTankDown = false;
+                myTankRight = false;
+                myTankLeft = false;
+            }
+            if (ev.keyCode == 38 || ev.keyCode == 40 || ev.keyCode == 39 || ev.keyCode == 37) {
+                //上移动
+                myTank2Up = false;
+                myTank2Down = false;
+                myTank2Right = false;
+                myTank2Left = false;
+            }
+        };
+
+        function myTankMove() {
+            try {
+                for (var n = 0; n < aMyTankCount.length; n++) {
+                    if (!player1Die && aMyTankCount[n]['id'] == 100) {
+                        var myTank = aMyTankCount[n];
+                    }
+                }
+                if (!player1Die && myTankUp) {
+                    //上移动
+                    var ret = collisionWorld(myTank.X, myTank['Y'] - myTank['speed'], tankWidth, 'tank', myTank.id);
+                    if (false == ret) {
+                        myTank['Y'] = myTank['Y'] - myTank['speed'] < 0 ? 0 : myTank['Y'] - myTank['speed'];
+                    } else if (0 != myTank['Y'] % 50) {
+                        myTank.Y = myTank.Y - (myTank.Y % 50);
+                    }
+                    myTank['direction'] = 0;
+                    myTank['img'] = 1 == tick % 2 ? myTankImg0 : myTankImg4;
+                } else if (!player1Die && myTankDown) {
+                    //下移动
+                    var ret = collisionWorld(myTank.X, myTank.Y + myTank.speed, tankWidth, 'tank', myTank.id);
+                    if (false == ret) {
+                        myTank.Y = myTank.Y + myTank.speed > screenY - tankWidth ? screenY - tankWidth : myTank.Y + myTank.speed;
+                    } else if (0 != myTank['Y'] % 50) {
+                        myTank.Y = myTank.Y + 50 - (myTank.Y % 50);
+                    }
+                    myTank['direction'] = 2;
+                    myTank['img'] = 1 == tick % 2 ? myTankImg2 : myTankImg6;
+                } else if (!player1Die && myTankRight) {
+                    //右移动
+                    var ret = collisionWorld(myTank.X + myTank.speed, myTank['Y'], tankWidth, 'tank', myTank.id);
+                    if (false == ret) {
+                        myTank['X'] = myTank.X + myTank['speed'] > screenX - tankWidth ? screenX - tankWidth : myTank.X + myTank.speed;
+                    } else if (0 != myTank.X % 50) {
+                        myTank['X'] = myTank.X + 50 - (myTank.X % 50);
+                    }
+                    myTank['direction'] = 1;
+                    myTank['img'] = 1 == tick % 2 ? myTankImg1 : myTankImg5;
+                } else if (!player1Die && myTankLeft) {
+                    //左移动
+                    var ret = collisionWorld(myTank.X - myTank.speed, myTank['Y'], tankWidth, 'tank', myTank.id);
+                    if (false == ret) {
+                        myTank['X'] = myTank.X - myTank['speed'] < 0 ? 0 : myTank.X - myTank.speed;
+                    } else if (0 != myTank.X % 50) {
+                        myTank['X'] = myTank.X - (myTank.X % 50);
+                    }
+                    myTank['direction'] = 3;
+                    myTank['img'] = 1 == tick % 2 ? myTankImg3 : myTankImg7;
+                }
+                if (playerNum == 2) {
+                    for (var n = 0; n < aMyTankCount.length; n++) {
+                        if (!player2Die && aMyTankCount[n]['id'] == 200) {
+                            var myTank2 = aMyTankCount[n];
+                        }
+                    }
+                    if (!player2Die && myTank2Up) {
+                        //上移动
+                        var ret = collisionWorld(myTank2.X, myTank2['Y'] - myTank2['speed'], tankWidth, 'tank', myTank2.id);
+                        if (false == ret) {
+                            myTank2['Y'] = myTank2['Y'] - myTank2['speed'] < 0 ? 0 : myTank2['Y'] - myTank2['speed'];
+                        } else if (0 != myTank2['Y'] % 50) {
+                            myTank2['Y'] = myTank2['Y'] - (myTank2['Y'] % 50);
+                        }
+                        myTank2['direction'] = 0;
+                        myTank2['img'] = 1 == tick % 2 ? myTank2Img0 : myTank2Img4;
+                    } else if (!player2Die && myTank2Down) {
+                        //下移动
+                        var ret = collisionWorld(myTank2.X, myTank2.Y + myTank2.speed, tankWidth, 'tank', myTank2.id);
+                        if (false == ret) {
+                            myTank2.Y = myTank2.Y + myTank2.speed > screenY - tankWidth ? screenY - tankWidth : myTank2.Y + myTank2.speed;
+                        } else if (0 != myTank2['Y'] % 50) {
+                            myTank2.Y = myTank2.Y + 50 - (myTank2.Y % 50);
+                        }
+                        myTank2['direction'] = 2;
+                        myTank2['img'] = 1 == tick % 2 ? myTank2Img2 : myTank2Img6;
+                    } else if (!player2Die && myTank2Right) {
+                        //右移动
+                        var ret = collisionWorld(myTank2.X + myTank2.speed, myTank2.Y, tankWidth, 'tank', myTank2.id);
+                        if (false == ret) {
+                            myTank2['X'] = myTank2.X + myTank2['speed'] > screenX - tankWidth ? screenX - tankWidth : myTank2.X + myTank2.speed;
+                        } else if (0 != myTank2.X % 50) {
+                            myTank2['X'] = myTank2.X + 50 - (myTank2.X % 50);
+                        }
+                        myTank2['direction'] = 1;
+                        myTank2['img'] = 1 == tick % 2 ? myTank2Img1 : myTank2Img5;
+                    } else if (!player2Die && myTank2Left) {
+                        //左移动
+                        var ret = collisionWorld(myTank2.X - myTank2.speed, myTank2.Y, tankWidth, 'tank', myTank2.id);
+                        if (false == ret) {
+                            myTank2['X'] = myTank2.X - myTank2['speed'] < 0 ? 0 : myTank2.X - myTank2.speed;
+                        } else if (0 != myTank2.X % 50) {
+                            myTank2['X'] = myTank2.X - (myTank2.X % 50);
+                        }
+                        myTank2['direction'] = 3;
+                        myTank2['img'] = 1 == tick % 2 ? myTank2Img3 : myTank2Img7;
+                    }
+                }
+            } catch (e) {}
+        }
+
+        function loop() {
+            if (GameOver) return;
+            tick++;
+            if (undefined == timebegin) {
+                timebegin = new Date();
+            }
+            var newtime = new Date();
+            var difftime = Math.floor(Math.abs(newtime.getTime() - timebegin.getTime()) / 1000);
+
+            $('#player1Numbar').val(playerAHit);
+            $('#player2Numbar').val(playerBHit);
+            $('#playerAKill').val(playerAKill);
+            $('#playerBKill').val(playerBKill);
+            $('#playerAFlag').val(playerAFlag);
+            $('#playerBFlag').val(playerBFlag);
+
+            _configs.playerAKill = playerAKill;
+            _configs.playerBKill = playerBKill;
+            _configs.playerAFlag = playerAFlag;
+            _configs.playerBFlag = playerBFlag;
+
+            $('#playerAFire').val(playerAFire);
+            $('#playerBFire').val(playerBFire);
+
+            $('#Player1barName').val("");
+            $('#Player2barName').val("");
+
+            for (var i = 0, aMyTankLen = aMyTankCount.length; i < aMyTankLen; i++) {
+                aMyTankCount[i].bulletTick = aMyTankCount[i].bulletTick >= aMyTankCount[i].bulletTickLimit ? aMyTankCount[i].bulletTickLimit : aMyTankCount[i].bulletTick + 1;
+            }
+
+            try {
+                playerAName = playerA.land(aMyTankCount, aTankCount, aBulletCount, aMyBulletCount1, aMyBulletCount2, aworld, screenX, screenY, config,PF);
+            } catch (e) {
+                UIShowFatalError(1)
+                console.error('左侧玩家代码异常，请检查land方法', e?.message ?? e?.stack ?? '--');
+            }
+
+            try {
+                playerBName = playerB.land(aMyTankCount, aTankCount, aBulletCount, aMyBulletCount1, aMyBulletCount2, aworld, screenX, screenY, config,PF);
+            } catch (e) {
+                UIShowFatalError(2)
+                console.error('右侧玩家代码异常，请检查land方法', e?.message ?? e?.stack ?? '--');
+            }
+
+
+
+            $('#Player1barName').val(playerAName);
+            $('#Player2barName').val(playerBName);
+
+
+            {
+                playerApower = 0;
+                playerBpower = 0;
+                for (var i = 0; i < aMyTankCount.length; i++) {
+                    const tank = aMyTankCount[i];
+                    if (tank.id == 100) {
+                        playerApower = tank.poweradd;
+                    }
+                    if (tank.id == 200) {
+                        playerBpower = tank.poweradd;
+                    }
+                }
+            }
+
+            if (0 != playplayerALife) {
+                playerACostTime = difftime;
+            }
+            if (0 != playerBLife) {
+                playerBCostTime = difftime;
+            }
+            $('#playerACostTime').val(playerACostTime);
+            $('#playerBCostTime').val(playerBCostTime);
+            for (var i = 0; i < aMyTankCount.length; i++) {
+                const myTank = aMyTankCount[i];
+                if (myTank.id == 100) {
+                    if (playerApower > 0) {
+                        $('#playerAbullet').val('[' + myTank.bulletTickLimit + ']');
+                    } else {
+                        $('#playerAbullet').val(myTank.bulletTickLimit);
+                    }
+                }
+                if (myTank.id == 200) {
+                    if (playerBpower > 0) {
+                        $('#playerBbullet').val('[' + myTank.bulletTickLimit + ']');
+                    } else {
+                        $('#playerBbullet').val(myTank.bulletTickLimit);
+                    }
+                }
+            }
+
+            var cur = new Date().valueOf();
+            if (0 == curremaintime) {
+                curremaintime = new Date().valueOf();
+            }
+            if (aTankCount.length == 0) {
+                remaintime = 15 - Math.floor((cur - curremaintime) / 1000);
+                if (remaintime >= 0) {
+                    $('#remain').val(remaintime);
+                }
+            } else if (aTankCount.length > 0) {
+                //任何比赛的时间都不可以超过最大battlelimittime，默认150
+                remaintime = battlelimittime - Math.floor((cur - curremaintime) / 1000);
+                if (remaintime >= 0) {
+                    $('#remain').val(remaintime);
+                }
+            }
+            if (GameOver) {
+                return;
+            }
+            // GameOver = checkGameOver();
+
+            var ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, screenX, screenY);
+            var aTankCollide = [], //存储被击中的敌方坦克
+                aMyBulletCollide1 = [], //我方击中坦克的炮弹
+                aMyBulletCollide2 = [], //我方击中坦克的炮弹
+                aMyTankCollide = [], //存储被击中的我方坦克
+                aBulletCollide = [], //敌方击中我方坦克的炮弹
+                aDelMyBullet1 = [], //储存我方不在屏幕中的子弹的位置
+                aDelMyBullet2 = [], //储存我方不在屏幕中的子弹的位置
+                aDelBullet = []; //存储敌方不在屏幕中的子弹的位置
+            myTankMove(); //移动我方Tank位置
+
+            ctx.fillStyle = '#63595C';
+            ctx.fillRect(0, 0, screenX, screenY);
+            for (var i = 0; i < aworld.length; i++) {
+                if (1 == aworld[i][4]) {
+                    if (aworld[i][5] > metallife - 50) {
+                        ctx.drawImage(this.metal, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                    } else if (aworld[i][5] > metallife - 150) {
+                        ctx.drawImage(this.metal1, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                    } //if (aworld[i][5] >= 0) {
+                    else ctx.drawImage(this.metal2, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                    /*} else {
+              ctx.drawImage(this.earth0, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3])
+            }*/
+                }
+                if (2 == aworld[i][4]) {
+                    if (20 < tick % 30) {
+                        ctx.drawImage(this.water, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                    } else if (10 < tick % 30) {
+                        ctx.drawImage(this.water1, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                    } else {
+                        ctx.drawImage(this.water2, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                    }
+                }
+                if (3 == aworld[i][4]) {
+                    if (aworld[i][5] > grasslife - 500) {
+                        if (150 < tick % 180) {
+                            ctx.drawImage(this.grass0, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                        } else if (140 < tick % 180) {
+                            ctx.drawImage(this.grass1, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                        } else if (130 < tick % 180) {
+                            ctx.drawImage(this.grass2, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                        } else if (120 < tick % 180) {
+                            ctx.drawImage(this.grass3, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                        } else if (110 < tick % 180) {
+                            ctx.drawImage(this.grass4, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                        } else {
+                            ctx.drawImage(this.grass0, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                        }
+                    } else if (aworld[i][5] > grasslife - 1500) {
+                        ctx.drawImage(this.grassshake1, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                    } else if (aworld[i][5] >= 0) {
+                        ctx.drawImage(this.grassshake2, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                    } else {
+                        ctx.drawImage(this.earth0, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                    }
+
+                    if (aworld[i][5] < grasslife - 499) {
+                        aworld[i][5]++;
+                    }
+                }
+                if (4 == aworld[i][4]) {
+                    if (aworld[i][5] > icelife - 5) {
+                        if (50 < tick % 180) {
+                            ctx.drawImage(this.ice0, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                        } else if (40 < tick % 180) {
+                            ctx.drawImage(this.ice1, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                        } else if (30 < tick % 180) {
+                            ctx.drawImage(this.ice2, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                        } else if (20 < tick % 180) {
+                            ctx.drawImage(this.ice3, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                        } else if (10 < tick % 180) {
+                            ctx.drawImage(this.ice4, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                        } else {
+                            ctx.drawImage(this.ice5, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                        }
+                    } else if (aworld[i][5] > icelife - 40) {
+                        ctx.drawImage(this.iceshake1, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                    } else if (aworld[i][5] > 0) {
+                        ctx.drawImage(this.iceshake2, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                    } else {
+                        var randomearth = i % 6;
+                        if (earthrandom1 == randomearth) {
+                            ctx.drawImage(this.earth0, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                        } else if (earthrandom2 == randomearth) {
+                            ctx.drawImage(this.earth1, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                        } else {
+                            ctx.drawImage(this.earth2, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                        }
+                    }
+                    if (aworld[i][5] < icelife) {
+                        aworld[i][5] = aworld[i][5] + 0.05;
+                    }
+                }
+                if (9 == aworld[i][4]) {
+                    if (aworld[i][5] > bricklife - 5) {
+                        ctx.drawImage(this.brickrenew, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                    } else if (aworld[i][5] >= bricklife - 10) {
+                        ctx.drawImage(this.brick1, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                    } else if (aworld[i][5] > 0) {
+                        ctx.drawImage(this.brick2, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                    } else {
+                        ctx.drawImage(this.earth0, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                    }
+
+                    if (aworld[i][5] < bricklife) {
+                        aworld[i][5] = aworld[i][5] + 0.04;
+                    }
+                }
+                if (10 == aworld[i][4]) {
+                    if (aworld[i][5] > icelife - 5) {
+                        ctx.drawImage(this.icerenew, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                    } else if (aworld[i][5] > icelife - 40) {
+                        ctx.drawImage(this.iceshake1, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                    } else if (aworld[i][5] > 0) {
+                        ctx.drawImage(this.iceshake2, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                    } else {
+                        if (20 < tick % 30) {
+                            ctx.drawImage(this.water, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                        } else if (10 < tick % 30) {
+                            ctx.drawImage(this.water1, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                        } else {
+                            ctx.drawImage(this.water2, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                        }
+                    }
+                    if (aworld[i][5] < 5) {
+                        aworld[i][5] = aworld[i][5] + 0.05;
+                    }
+                }
+
+                if (8 == aworld[i][4]) {
+                    if (aworld[i][5] > bricklife - 5) {
+                        ctx.drawImage(this.brick, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                    } else if (aworld[i][5] >= bricklife - 10) {
+                        ctx.drawImage(this.brick1, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                    } else if (aworld[i][5] > 0) {
+                        ctx.drawImage(this.brick2, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                    }
+                }
+                if (100 <= aworld[i][4]) {
+                    var randomearth = i % 6;
+                    if (earthrandom1 == randomearth) {
+                        ctx.drawImage(this.earth0, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                    } else if (earthrandom2 == randomearth) {
+                        ctx.drawImage(this.earth1, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                    } else {
+                        ctx.drawImage(this.earth2, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                    }
+                }
+                if (5 == aworld[i][4] || 6 == aworld[i][4] || 7 == aworld[i][4]) {
+                    ctx.drawImage(this.earth0, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                }
+                if (11 == aworld[i][4] ) {
+                    ctx.drawImage(this.earth0, 0, 0, 50, 50, aworld[i][0], aworld[i][1], aworld[i][2], aworld[i][3]);
+                }
+            }
+            //绘制增强
+            if (true == equip) {
+                var equiparray = new Object();
+                ctx.globalCompositeOperation = 'darker';
+                if ([-100, -100] != paddlife) {
+                    ctx.drawImage(this.addlife, 0, 0, 50, 50, paddlife[0], paddlife[1], 50, 50);
+                    equiparray['life'] = paddlife;
+                }
+                if ([-100, -100] != paddpower) {
+                    ctx.drawImage(this.addpower, 0, 0, 50, 50, paddpower[0], paddpower[1], 50, 50);
+                    equiparray['power'] = paddpower;
+                }
+                if ([-100, -100] != paddbullet) {
+                    ctx.drawImage(this.addbullet, 0, 0, 50, 50, paddbullet[0], paddbullet[1], 50, 50);
+                    equiparray['bullet'] = paddbullet;
+                }
+                if ([-100, -100] != paddshield) {
+                    ctx.drawImage(this.addshield, 0, 0, 50, 50, paddshield[0], paddshield[1], 50, 50);
+                    equiparray['shield'] = paddshield;
+                }
+
+                _configs.equip = equiparray;
+
+                ctx.globalCompositeOperation = 'source-over';
+            }
+
+            // 绘制旗帜
+            var flagarray = [];
+            if (flagList && flagList.length > 0) {
+                for(var i = 0, flagLen = flagList.length; i < flagLen; i++) {
+                    var flagX = flagList[i][0] - 50, flagY = flagList[i][1];
+                    flagarray.push([flagList[i][0] - 50, flagList[i][1], flagList[i][2], flagList[i][3]]);
+                    drawFlag(this.flag, flagX, flagY);
+                }
+            }
+            _configs.flagArray = flagarray;
+
+            //敌方
+            for (var i = 0, aTankLen = aTankCount.length; i < aTankLen; i++) {
+                //刷新敌方Tank
+                var tank = aTankCount[i];
+                tank.draw(); //画坦克
+                for (var j = 0, aBulletLen = aMyBulletCount1.length; j < aBulletLen; j++) {
+                    //检测坦克是否被炮弹击中
+                    var bullet = aMyBulletCount1[j];
+                    var bulletX = bullet.X - bulletWidth / 2;
+                    var bulletY = bullet.Y - bulletWidth / 2;
+                    var rect = checkCollide(aTankCount[i]['X'], aTankCount[i]['Y'], tankWidth, tankWidth, bulletX, bulletY, bulletWidth, bulletWidth);
+                    var isCollide = (rect[2] - rect[0]) * (rect[3] - rect[1]) > 0;
+                    if (isCollide) {
+                        //发生碰撞
+                        var splashshot = 9 + Math.floor(Math.random() * 3);
+                        if (aMyBulletCount1[j]['name'] == 100) {
+                            splashshot = splashshot + aMyTankCount[0].poweradd;
+                        } else if (aMyBulletCount1[j]['name'] == 200) {
+                            var playerid = aMyTankCount.length > 1 ? 1 : 0;
+                            splashshot = splashshot + aMyTankCount[playerid].poweradd;
+                        }
+                        splashshot = 1 == mapenemytankrank ? 10 : splashshot;
+                        aTankCount[i].Hp = tank.Hp - splashshot;
+                        if (splashshot > 10) {
+                            ctx.drawImage(superboomImg, 0, 0, 100, 100, bullet.X - 50, bullet.Y - 50, 100, 100); //画爆炸效果
+                            audioplay(superboom);
+                        } else {
+                            audioplay(boom);
+                        }
+                        if (aTankCount[i].Hp <= 0) {
+                            aTankCollide.push(i); //存储被击中坦克在数组中的位置
+                            if (aMyBulletCount1[j]['name'] == 100) {
+                                playerAKill++;
+                            } else if (aMyBulletCount1[j]['name'] == 200) {
+                                playerBKill++;
+                            }
+                        }
+
+                        aMyBulletCollide1.push(j); //存储击中坦克的炮弹在数组中的位置
+                        if (aMyBulletCount1[j]['name'] == 100) {
+                            playerAHit++;
+                        } else if (aMyBulletCount1[j]['name'] == 200) {
+                            playerBHit++;
+                        }
+                        //console.log(playerAHit,playerBHit,aMyBulletCount1[j]['name']);
+                        break;
+                    }
+                }
+                tank.move();
+                tank.changeDir();
+                tank.fire();
+
+            }
+
+            aTankCollide.sort((a, b) => {
+                return b - a;
+            });
+            aTankCollide = [...new Set([...aTankCollide])];
+            aMyBulletCollide1.reverse();
+            aMyBulletCollide2.reverse();
+            for (var i = 0, aTankCollideLen = aTankCollide.length; i < aTankCollideLen; i++) {
+                //删除被击中的敌方Tank
+                aTankCount.splice(aTankCollide[i], 1);
+                //如果AI坦克没有了，开始最终倒计时
+                if (0 == aTankCount.length) {
+                    curremaintime = 0;
+                }
+            }
+            aTankCollide = []
+
+            // 敌方tank
+            for (var i = 0, aTankLen = aTankCount.length; i < aTankLen; i++) {
+                //刷新敌方Tank
+                var tank = aTankCount[i];
+                tank.draw(); //画坦克
+                for (var j = 0, aBulletLen = aMyBulletCount2.length; j < aBulletLen; j++) {
+                    //检测坦克是否被炮弹击中
+                    var bullet = aMyBulletCount2[j];
+                    var bulletX = bullet.X - bulletWidth / 2;
+                    var bulletY = bullet.Y - bulletWidth / 2;
+                    var rect = checkCollide(aTankCount[i]['X'], aTankCount[i]['Y'], tankWidth, tankWidth, bulletX, bulletY, bulletWidth, bulletWidth);
+                    var isCollide = (rect[2] - rect[0]) * (rect[3] - rect[1]) > 0;
+                    if (isCollide) {
+                        //发生碰撞
+                        var splashshot = 9 + Math.floor(Math.random() * 3);
+                        if (aMyBulletCount2[j]['name'] == 100) {
+                            splashshot = splashshot + aMyTankCount[0].poweradd;
+                        } else if (aMyBulletCount2[j]['name'] == 200) {
+                            var playerid = aMyTankCount.length > 1 ? 1 : 0;
+                            splashshot = splashshot + aMyTankCount[playerid].poweradd;
+                        }
+                        splashshot = 1 == mapenemytankrank ? 10 : splashshot;
+                        aTankCount[i].Hp = tank.Hp - splashshot;
+                        if (splashshot > 10) {
+                            ctx.drawImage(superboomImg, 0, 0, 100, 100, bullet.X - 50, bullet.Y - 50, 100, 100); //画爆炸效果
+                            audioplay(superboom);
+                        } else {
+                            audioplay(boom);
+                        }
+                        if (aTankCount[i].Hp <= 0) {
+                            aTankCollide.push(i); //存储被击中坦克在数组中的位置
+                            if (aMyBulletCount2[j]['name'] == 100) {
+                                playerAKill++;
+                            } else if (aMyBulletCount2[j]['name'] == 200) {
+                                playerBKill++;
+                            }
+                        }
+                        aMyBulletCollide2.push(j); //存储击中坦克的炮弹在数组中的位置
+
+                        if (aMyBulletCount2[j]['name'] == 100) {
+                            playerAHit++;
+                        } else if (aMyBulletCount2[j]['name'] == 200) {
+                            playerBHit++;
+                        }
+                        //console.log(playerAHit,playerBHit,aMyBulletCount2[j]['name']);
+                        break;
+                    }
+                }
+                tank.move();
+                tank.changeDir();
+                tank.fire();
+            }
+            aTankCollide.sort((a, b) => {
+                return b - a;
+            });
+            aTankCollide = [...new Set([...aTankCollide])];
+            aMyBulletCollide1.reverse();
+            aMyBulletCollide2.reverse();
+            for (var i = 0, aTankCollideLen = aTankCollide.length; i < aTankCollideLen; i++) {
+                //删除被击中的敌方Tank
+                aTankCount.splice(aTankCollide[i], 1);
+                //如果AI坦克没有了，开始最终倒计时
+                if (0 == aTankCount.length) {
+                    curremaintime = 0;
+                }
+            }
+            aTankCollide = []
+
+
+            for (var i = 0, aMyBulletCollideLen = aMyBulletCollide1.length; i < aMyBulletCollideLen; i++) {
+                if(aMyBulletCount1[aMyBulletCollide1[i]]) {
+                    ctx.drawImage(boomImg, 0, 0, 100, 100, aMyBulletCount1[aMyBulletCollide1[i]]['X'] - 50, aMyBulletCount1[aMyBulletCollide1[i]]['Y'] - 50, 100, 100); //画爆炸效果
+                    aMyBulletCount1.splice(aMyBulletCollide1[i], 1); //删除我方击中坦克的炮弹
+                }
+            }
+            for (var i = 0, aMyBulletCollideLen = aMyBulletCollide2.length; i < aMyBulletCollideLen; i++) {
+                if(aMyBulletCount2[aMyBulletCollide2[i]]) {
+                    ctx.drawImage(boomImg, 0, 0, 100, 100, aMyBulletCount2[aMyBulletCollide2[i]]['X'] - 50, aMyBulletCount2[aMyBulletCollide2[i]]['Y'] - 50, 100, 100); //画爆炸效果
+                    aMyBulletCount2.splice(aMyBulletCollide2[i], 1); //删除我方击中坦克的炮弹
+                }
+            }
+            for (var i = 0, len = aMyBulletCount1.length; i < len; i++) {
+                //刷新子弹
+                var bullet = aMyBulletCount1[i];
+                bullet.draw(); //画子弹
+                bullet.move(); //子弹移动
+                if (bullet.X > screenX + bulletWidth / 2 || bullet.X < -bulletWidth / 2 || bullet.Y > screenY + bulletWidth / 2 || bullet.Y < -bulletWidth / 2) {
+                    //跑出屏幕的炮弹
+                    aDelMyBullet1.push(i);
+                }
+                var ret = collisionWorld(bullet.X - bulletWidth / 2, bullet.Y - bulletWidth / 2, bulletWidth, 'Bullet', null); //检测和金属防御碰撞
+                if (true == ret) {
+                    ctx.drawImage(boomImg, 0, 0, 100, 100, bullet.X - 50, bullet.Y - 50, 100, 100); //画爆炸效果
+                    aDelMyBullet1.push(i);
+                }
+            }
+            aDelMyBullet1.reverse(); //倒置数组
+            for (var i = 0, len = aDelMyBullet1.length; i < len; i++) {
+                //删除子弹
+                aMyBulletCount1.splice(aDelMyBullet1[i], 1);
+            }
+            for (var i = 0, len = aMyBulletCount2.length; i < len; i++) {
+                //刷新子弹
+                var bullet = aMyBulletCount2[i];
+                bullet.draw(); //画子弹
+                bullet.move(); //子弹移动
+                if (bullet.X > screenX + bulletWidth / 2 || bullet.X < -bulletWidth / 2 || bullet.Y > screenY + bulletWidth / 2 || bullet.Y < -bulletWidth / 2) {
+                    //跑出屏幕的炮弹
+                    aDelMyBullet2.push(i);
+                }
+                var ret = collisionWorld(bullet.X - bulletWidth / 2, bullet.Y - bulletWidth / 2, bulletWidth, 'Bullet', null); //检测和金属防御碰撞
+                if (true == ret) {
+                    ctx.drawImage(boomImg, 0, 0, 100, 100, bullet.X - 50, bullet.Y - 50, 100, 100); //画爆炸效果
+                    aDelMyBullet2.push(i);
+                }
+            }
+            aDelMyBullet2.reverse(); //倒置数组
+            for (var i = 0, len = aDelMyBullet2.length; i < len; i++) {
+                //删除子弹
+                aMyBulletCount2.splice(aDelMyBullet2[i], 1);
+            }
+
+            aMyBulletCollide1 = []; //我方击中坦克的炮弹
+            aMyBulletCollide2 = []; //我方击中坦克的炮弹
+
+            //我方Tank
+            for (var i = 0, aMyTankLen = aMyTankCount.length; i < aMyTankLen; i++) {
+                var tank = aMyTankCount[i];
+                tank.draw(); //画坦克
+                for (var j = 0, aBulletLen = aBulletCount.length; j < aBulletLen; j++) {
+                    //检测我方坦克是否被炮弹击中
+                    var bullet = aBulletCount[j];
+                    var bulletX = bullet.X - bulletWidth / 2;
+                    var bulletY = bullet.Y - bulletWidth / 2;
+                    var rect = checkCollide(aMyTankCount[i]['X'], aMyTankCount[i]['Y'], tankWidth, tankWidth, bulletX, bulletY, bulletWidth, bulletWidth);
+                    var isCollide = (rect[2] - rect[0]) * (rect[3] - rect[1]) > 0;
+                    if (isCollide) {
+                        //发生碰撞
+                        // 是否暴击开启
+                        var splashshot = _configs.isAiSuperBullet ? 11 : 9 + Math.floor(Math.random() * 3);
+                        splashshot = 1 == mapmytankrank ? 10 : splashshot;
+                        if(true === aMyTankCount[i].shieldadd) {
+                            //防护罩抵消一次攻击
+                            aMyTankCount[i].shieldadd = false;
+                        } else {
+                            aMyTankCount[i].Hp = tank.Hp - splashshot;
+                        }
+                        if (splashshot > 10) {
+                            ctx.drawImage(superboomImg, 0, 0, 100, 100, bullet.X - 50, bullet.Y - 50, 100, 100); //画爆炸效果
+                            audioplay(superboom);
+                        } else {
+                            audioplay(boom);
+                        }
+                        console.log('player shot' + bullet.name, bullet.X, bullet.Y, aMyTankCount[i]['X'], aMyTankCount[i]['Y']);
+                        if (aMyTankCount[i].Hp <= 0) {
+                            audioplay(over);
+
+                            aMyTankCollide.push(i); //存储被击中坦克在数组中的位置
+                            if (aMyTankCount[i]['id'] == 100) {
+                                player1Die = true;
+                            } else {
+                                player2Die = true;
+                            }
+                        }
+
+                        aBulletCollide.push(j); //存储击中坦克的炮弹在数组中的位置
+
+                        break;
+                    }
+                }
+                if (true == _configs.isBattleMode && aTankCount.length <= 0) {
+                    //如果不是互杀模式，不检测AB玩家的炮弹是不是相互击中
+                    for (var j = 0, aBulletLen = aMyBulletCount1.length; j < aBulletLen; j++) {
+                        //检测我方坦克是否被炮弹击中
+                        if (aMyTankCount[i]['id'] != 100) {
+                            //player1不能击杀自己
+                            var bullet = aMyBulletCount1[j];
+                            var bulletX = bullet.X - bulletWidth / 2;
+                            var bulletY = bullet.Y - bulletWidth / 2;
+                            var rect = checkCollide(aMyTankCount[i]['X'], aMyTankCount[i]['Y'], tankWidth, tankWidth, bulletX, bulletY, bulletWidth, bulletWidth);
+                            var isCollide = (rect[2] - rect[0]) * (rect[3] - rect[1]) > 0;
+                            if (isCollide) {
+                                //发生碰撞
+                                // 是否暴击开启
+                                var splashshot = _configs.isAiSuperBullet ? 11 : 9 + Math.floor(Math.random() * 3);
+                                splashshot = 1 == mapmytankrank ? 10 : splashshot;
+                                if(true === aMyTankCount[i].shieldadd) {
+                                    //防护罩抵消一次攻击
+                                    aMyTankCount[i].shieldadd = false;
+                                } else {
+                                    aMyTankCount[i].Hp = aMyTankCount[i].Hp - splashshot;
+                                }
+                                if (splashshot > 10) {
+                                    ctx.drawImage(superboomImg, 0, 0, 100, 100, aMyTankCount[i]['X'] - 50, aMyTankCount[i]['Y'] - 50, 100, 100); //画爆炸效果
+                                    audioplay(superboom);
+                                } else {
+                                    audioplay(boom);
+                                }
+                                console.log('player shot');
+                                if (aMyTankCount[i].Hp <= 0) {
+                                    audioplay(over);
+                                    aMyTankCollide.push(i); //存储被击中坦克在数组中的位置
+                                    if (aMyTankCount[i]['id'] == 100) {
+                                        player1Die = true;
+                                    } else {
+                                        player2Die = true;
+                                    }
+                                }
+                                aMyBulletCollide1.push(j); //存储击中坦克的炮弹在数组中的位置
+                                break;
+                            }
+                        }
+                    }
+                    for (var j = 0, aBulletLen = aMyBulletCount2.length; j < aBulletLen; j++) {
+                        //检测我方坦克是否被炮弹击中
+                        if (aMyTankCount[i]['id'] != 200) {
+                            //player2不能击杀自己
+                            var bullet = aMyBulletCount2[j];
+                            var bulletX = bullet.X - bulletWidth / 2;
+                            var bulletY = bullet.Y - bulletWidth / 2;
+                            var rect = checkCollide(aMyTankCount[i]['X'], aMyTankCount[i]['Y'], tankWidth, tankWidth, bulletX, bulletY, bulletWidth, bulletWidth);
+                            var isCollide = (rect[2] - rect[0]) * (rect[3] - rect[1]) > 0;
+                            if (isCollide) {
+                                //发生碰撞
+                                // 是否暴击开启
+                                var splashshot = _configs.isAiSuperBullet ? 11 : 9 + Math.floor(Math.random() * 3);
+                                splashshot = 1 == mapmytankrank ? 10 : splashshot;
+                                if(true === aMyTankCount[i].shieldadd) {
+                                    //防护罩抵消一次攻击
+                                    aMyTankCount[i].shieldadd = false;
+                                } else {
+                                    aMyTankCount[i].Hp = aMyTankCount[i].Hp - splashshot;
+                                }
+                                if (splashshot > 10) {
+                                    ctx.drawImage(superboomImg, 0, 0, 100, 100, aMyTankCount[i]['X'] - 50, aMyTankCount[i]['Y'] - 50, 100, 100); //画爆炸效果
+                                    audioplay(superboom);
+                                } else {
+                                    audioplay(boom);
+                                }
+                                console.log('player shot');
+                                if (aMyTankCount[i].Hp <= 0) {
+                                    audioplay(over);
+                                    aMyTankCollide.push(i); //存储被击中坦克在数组中的位置
+                                    if (aMyTankCount[i]['id'] == 100) {
+                                        player1Die = true;
+                                    } else {
+                                        player2Die = true;
+                                    }
+                                }
+                                aMyBulletCollide2.push(j); //存储击中坦克的炮弹在数组中的位置
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            aMyTankCollide.reverse();
+
+            aBulletCollide.reverse();
+            aMyBulletCollide1.reverse();
+            aMyBulletCollide2.reverse();
+
+            for (var i = 0, aMyTankCollideLen = aMyTankCollide.length; i < aMyTankCollideLen; i++) {
+                //删除被击中的我方Tank
+                aMyTankCount.splice(aMyTankCollide[i], 1);
+            }
+            for (var i = 0, aBulletCollideLen = aBulletCollide.length; i < aBulletCollideLen; i++) {
+                ctx.drawImage(boomImg, 0, 0, 100, 100, aBulletCount[aBulletCollide[i]]['X'] - 50, aBulletCount[aBulletCollide[i]]['Y'] - 50, 100, 100); //画爆炸效果
+                aBulletCount.splice(aBulletCollide[i], 1); //删除我方击中坦克的炮弹
+            }
+
+            for (var i = 0, aBulletCollideLen = aMyBulletCollide1.length; i < aBulletCollideLen; i++) {
+                ctx.drawImage(boomImg, 0, 0, 100, 100, aMyBulletCount1[aMyBulletCollide1[i]]['X'] - 50, aMyBulletCount1[aMyBulletCollide1[i]]['Y'] - 50, 100, 100); //画爆炸效果
+                aMyBulletCount1.splice(aMyBulletCollide1[i], 1); //删除我方击中坦克的炮弹
+            }
+            for (var i = 0, aBulletCollideLen = aMyBulletCollide2.length; i < aBulletCollideLen; i++) {
+                ctx.drawImage(boomImg, 0, 0, 100, 100, aMyBulletCount2[aMyBulletCollide2[i]]['X'] - 50, aMyBulletCount2[aMyBulletCollide2[i]]['Y'] - 50, 100, 100); //画爆炸效果
+                aMyBulletCount2.splice(aMyBulletCollide2[i], 1); //删除我方击中坦克的炮弹
+            }
+
+            for (var i = 0, len = aBulletCount.length; i < len; i++) {
+                //刷新子弹
+                var bullet = aBulletCount[i];
+                bullet.draw(); //画子弹
+                bullet.move(); //子弹移动
+                if (bullet.X > screenX + bulletWidth / 2 || bullet.X < -bulletWidth / 2 || bullet.Y > screenY + bulletWidth / 2 || bullet.Y < -bulletWidth / 2) {
+                    //跑出屏幕的炮弹
+                    aDelBullet.push(i);
+                }
+                var ret = collisionWorld(bullet.X - bulletWidth / 2, bullet.Y - bulletWidth / 2, bulletWidth, 'Bullet', null); //检测和金属防御碰撞
+                if (true == ret) {
+                    ctx.drawImage(boomImg, 0, 0, 100, 100, bullet.X - 50, bullet.Y - 50, 100, 100); //画爆炸效果
+                    aDelBullet.push(i);
+                }
+            }
+            aDelBullet.reverse(); //倒置数组
+            for (var i = 0, len = aDelBullet.length; i < len; i++) {
+                //删除子弹
+                aBulletCount.splice(aDelBullet[i], 1);
+            }
+
+            //检测是否打到增强装置
+            if (true == equip) {
+                for (var i = 0; i < aMyTankCount.length; i++) {
+                    // 坦克碰撞血包道具
+                    var rect = checkCollide(paddlife[0], paddlife[1], tankWidth, tankWidth, aMyTankCount[i]['X'], aMyTankCount[i]['Y'], tankWidth, tankWidth);
+                    var isCollide = (rect[2] - rect[0]) * (rect[3] - rect[1]) > 0;
+                    if (isCollide && [-100, -100] != paddlife) {
+                        if (0 == i) {
+                            const tankId = aMyTankCount[i].id;
+                            const timer = setInterval(function () {
+                                if(aMyTankCount[0] && aMyTankCount[0].id == tankId) {
+                                    ctx.drawImage(addlife, 0, 0, 50, 50, aMyTankCount[0]['X'], aMyTankCount[0]['Y'], 50, 50); //吃东西效果
+                                } else {
+                                    clearInterval(timer);
+                                }
+                            }, 20);
+                            setTimeout(() => {
+                                clearInterval(timer);
+                            }, 6000);
+                        } else {
+                            const tankId = aMyTankCount[i].id;
+                            const timer = setInterval(function () {
+                                if(aMyTankCount[1] && aMyTankCount[1].id == tankId) {
+                                    ctx.drawImage(addlife, 0, 0, 50, 50, aMyTankCount[1]['X'], aMyTankCount[1]['Y'], 50, 50); //吃东西效果
+                                } else {
+                                    clearInterval(timer);
+                                }
+                            }, 20);
+                            setTimeout(() => {
+                                clearInterval(timer);
+                            }, 6000);
+                        }
+                        paddlife = [-100, -100];
+                        aMyTankCount[i].Hp = aMyTankCount[i].Hp + 10;
+                    }
+
+                    // 坦克碰撞弹夹道具
+                    var rect = checkCollide(paddbullet[0], paddbullet[1], tankWidth, tankWidth, aMyTankCount[i]['X'], aMyTankCount[i]['Y'], tankWidth, tankWidth);
+                    var isCollide = (rect[2] - rect[0]) * (rect[3] - rect[1]) > 0;
+                    if (isCollide && [-100, -100] != paddbullet) {
+                        if (0 == i) {
+                            const tankId = aMyTankCount[i].id;
+                            const timer = setInterval(function () {
+                                if(aMyTankCount[0] && aMyTankCount[0].id == tankId) {
+                                    ctx.drawImage(addbullet, 0, 0, 50, 50, aMyTankCount[0]['X'], aMyTankCount[0]['Y'], 50, 50); //吃东西效果
+                                } else {
+                                    clearInterval(timer);
+                                }
+                            }, 20);
+                            setTimeout(() => {
+                                clearInterval(timer);
+                            }, 6000);
+                        } else {
+                            const tankId = aMyTankCount[i].id;
+                            const timer = setInterval(function () {
+                                if(aMyTankCount[1] && aMyTankCount[1].id == tankId) {
+                                    ctx.drawImage(addbullet, 0, 0, 50, 50, aMyTankCount[1]['X'], aMyTankCount[1]['Y'], 50, 50); //吃东西效果
+                                } else {
+                                    clearInterval(timer);
+                                }
+                            }, 20);
+                            setTimeout(() => {
+                                clearInterval(timer);
+                            }, 6000);
+                        }
+                        paddbullet = [-100, -100];
+                        // aMyTankCount[i].bulletadd = aMyTankCount[i].bulletadd + 1;
+                        aMyTankCount[i].bulletTickLimit = 16;
+                    }
+
+                    // 坦克碰撞子弹增强道具
+                    var rect = checkCollide(paddpower[0], paddpower[1], tankWidth, tankWidth, aMyTankCount[i]['X'], aMyTankCount[i]['Y'], tankWidth, tankWidth);
+                    var isCollide = (rect[2] - rect[0]) * (rect[3] - rect[1]) > 0;
+                    if (isCollide && [-100, -100] != paddpower) {
+                        //
+                        if (0 == i) {
+                            const tankId = aMyTankCount[i].id;
+                            const timer = setInterval(function () {
+                                if(aMyTankCount[0] && aMyTankCount[0].id == tankId) {
+                                    ctx.drawImage(addpower, 0, 0, 50, 50, aMyTankCount[0]['X'], aMyTankCount[0]['Y'], 50, 50); //吃东西效果
+                                } else {
+                                    clearInterval(timer);
+                                }
+                            }, 20);
+                            setTimeout(() => {
+                                clearInterval(timer);
+                            }, 6000);
+                        } else {
+                            const tankId = aMyTankCount[i].id;
+                            const timer = setInterval(function () {
+                                if(aMyTankCount[1] && aMyTankCount[1].id == tankId) {
+                                    ctx.drawImage(addpower, 0, 0, 50, 50, aMyTankCount[1]['X'], aMyTankCount[1]['Y'], 50, 50); //吃东西效果
+                                } else {
+                                    clearInterval(timer);
+                                }
+                            }, 20);
+                            setTimeout(() => {
+                                clearInterval(timer);
+                            }, 6000);
+                        }
+
+                        paddpower = [-100, -100];
+                        if (1 == mapenemytankrank) {
+                            //单血制则多加一点血
+                            aMyTankCount[i].Hp = aMyTankCount[i].Hp + 1;
+                        } else {
+                            aMyTankCount[i].poweradd = aMyTankCount[i].poweradd + 2 + Math.floor(Math.random() * 4);
+                        }
+                    }
+
+                    // 坦克碰撞防护罩道具
+                    var rect = checkCollide(paddshield[0], paddshield[1], tankWidth, tankWidth, aMyTankCount[i]['X'], aMyTankCount[i]['Y'], tankWidth, tankWidth);
+                    var isCollide = (rect[2] - rect[0]) * (rect[3] - rect[1]) > 0;
+                    if (isCollide && [-100, -100] != paddshield) {
+                        paddshield = [-100, -100];
+                        aMyTankCount[i].shieldadd = true;
+                    }
+
+                    if(0 === i) {
+                        for (var mm = 0; mm < aMyBulletCount1.length; mm++) {
+                            // 左边玩家，子弹击中血包道具
+                            var rect = checkCollide(paddlife[0], paddlife[1], tankWidth, tankWidth, aMyBulletCount1[mm]['X'] - bulletWidth / 2, aMyBulletCount1[mm]['Y'] - bulletWidth / 2, bulletWidth, bulletWidth);
+                            var isCollide = (rect[2] - rect[0]) * (rect[3] - rect[1]) > 0;
+                            if (isCollide && [-100, -100] != paddlife) {
+                                const tankId = aMyTankCount[i].id;
+                                const timer = setInterval(function () {
+                                    if(aMyTankCount[0] && aMyTankCount[0].id == tankId) {
+                                        ctx.drawImage(addlife, 0, 0, 50, 50, aMyTankCount[0]['X'], aMyTankCount[0]['Y'], 50, 50); //吃东西效果
+                                    } else {
+                                        clearInterval(timer);
+                                    }
+                                }, 20);
+                                setTimeout(() => {
+                                    clearInterval(timer);
+                                }, 6000);
+                                paddlife = [-100, -100];
+                                aMyTankCount[0].Hp = aMyTankCount[0].Hp + 10;
+                            }
+                            // 左边玩家，子弹击中弹夹道具
+                            var rect = checkCollide(paddbullet[0], paddbullet[1], tankWidth, tankWidth, aMyBulletCount1[mm]['X'] - bulletWidth / 2, aMyBulletCount1[mm]['Y'] - bulletWidth / 2, bulletWidth, bulletWidth);
+                            var isCollide = (rect[2] - rect[0]) * (rect[3] - rect[1]) > 0;
+                            if (isCollide && [-100, -100] != paddbullet) {
+                                const tankId = aMyTankCount[i].id;
+                                const timer = setInterval(function () {
+                                    if(aMyTankCount[0] && aMyTankCount[0].id == tankId) {
+                                        ctx.drawImage(addbullet, 0, 0, 50, 50, aMyTankCount[0]['X'], aMyTankCount[0]['Y'], 50, 50); //吃东西效果
+                                    } else {
+                                        clearInterval(timer);
+                                    }
+                                }, 20);
+                                setTimeout(() => {
+                                    clearInterval(timer);
+                                }, 6000);
+
+                                paddbullet = [-100, -100];
+                                // aMyTankCount[0].bulletadd = aMyTankCount[0].bulletadd + 1;
+                                aMyTankCount[0].bulletTickLimit = 16;
+                            }
+                            // 左边玩家，子弹击中子弹增强道具
+                            var rect = checkCollide(paddpower[0], paddpower[1], tankWidth, tankWidth, aMyBulletCount1[mm]['X'] - bulletWidth / 2, aMyBulletCount1[mm]['Y'] - bulletWidth / 2, bulletWidth, bulletWidth);
+                            var isCollide = (rect[2] - rect[0]) * (rect[3] - rect[1]) > 0;
+                            if (isCollide && [-100, -100] != paddpower) {
+                                const tankId = aMyTankCount[i].id;
+                                const timer = setInterval(function () {
+                                    if(aMyTankCount[0] && aMyTankCount[0].id == tankId) {
+                                        ctx.drawImage(addpower, 0, 0, 50, 50, aMyTankCount[0]['X'], aMyTankCount[0]['Y'], 50, 50); //吃东西效果
+                                    } else {
+                                        clearInterval(timer);
+                                    }
+                                }, 20);
+                                setTimeout(() => {
+                                    clearInterval(timer);
+                                }, 6000);
+                                paddpower = [-100, -100];
+                                if (1 == mapenemytankrank) {
+                                    //单血制则多加一点血
+                                    aMyTankCount[0].Hp = aMyTankCount[i].Hp + 1;
+                                } else {
+                                    aMyTankCount[0].poweradd = aMyTankCount[i].poweradd + 2 + Math.floor(Math.random() * 4);
+                                }
+                            }
+                            // 左边玩家，子弹击中防护罩道具
+                            var rect = checkCollide(paddshield[0], paddshield[1], tankWidth, tankWidth, aMyBulletCount1[mm]['X'] - bulletWidth / 2, aMyBulletCount1[mm]['Y'] - bulletWidth / 2, bulletWidth, bulletWidth);
+                            var isCollide = (rect[2] - rect[0]) * (rect[3] - rect[1]) > 0;
+                            if (isCollide && [-100, -100] != paddshield) {
+                                paddshield = [-100, -100];
+                                aMyTankCount[0].shieldadd = true;
+                            }
+                        }
+                    }
+                    if(1 === i) {
+                        for (var nn = 0; nn < aMyBulletCount2.length; nn++) {
+                            // 右边玩家，子弹击中血包道具
+                            var rect = checkCollide(paddlife[0], paddlife[1], tankWidth, tankWidth, aMyBulletCount2[nn]['X'] - bulletWidth / 2, aMyBulletCount2[nn]['Y'] - bulletWidth / 2, bulletWidth, bulletWidth);
+                            var isCollide = (rect[2] - rect[0]) * (rect[3] - rect[1]) > 0;
+                            if (isCollide && [-100, -100] != paddlife) {
+                                const tankId = aMyTankCount[i].id;
+                                const timer = setInterval(function () {
+                                    if(aMyTankCount[1] && aMyTankCount[1].id == tankId) {
+                                        ctx.drawImage(addlife, 0, 0, 50, 50, aMyTankCount[1]['X'], aMyTankCount[1]['Y'], 50, 50); //吃东西效果
+                                    } else {
+                                        clearInterval(timer);
+                                    }
+                                }, 20);
+                                setTimeout(() => {
+                                    clearInterval(timer);
+                                }, 6000);
+                                paddlife = [-100, -100];
+                                aMyTankCount[1].Hp = aMyTankCount[1].Hp + 10;
+                            }
+                            // 左边玩家，子弹击中弹夹道具
+                            var rect = checkCollide(paddbullet[0], paddbullet[1], tankWidth, tankWidth, aMyBulletCount2[nn]['X'] - bulletWidth / 2, aMyBulletCount2[nn]['Y'] - bulletWidth / 2, bulletWidth, bulletWidth);
+                            var isCollide = (rect[2] - rect[0]) * (rect[3] - rect[1]) > 0;
+                            if (isCollide && [-100, -100] != paddbullet) {
+                                const tankId = aMyTankCount[i].id;
+                                const timer = setInterval(function () {
+                                    if(aMyTankCount[1] && aMyTankCount[1].id == tankId) {
+                                        ctx.drawImage(addbullet, 0, 0, 50, 50, aMyTankCount[1]['X'], aMyTankCount[1]['Y'], 50, 50); //吃东西效果
+                                    } else {
+                                        clearInterval(timer);
+                                    }
+                                }, 20);
+                                setTimeout(() => {
+                                    clearInterval(timer);
+                                }, 6000);
+                                paddbullet = [-100, -100];
+                                // aMyTankCount[1].bulletadd = aMyTankCount[1].bulletadd + 1;
+                                aMyTankCount[1].bulletTickLimit = 16;
+                            }
+                            // 左边玩家，子弹击中子弹增强道具
+                            var rect = checkCollide(paddpower[0], paddpower[1], tankWidth, tankWidth, aMyBulletCount2[nn]['X'] - bulletWidth / 2, aMyBulletCount2[nn]['Y'] - bulletWidth / 2, bulletWidth, bulletWidth);
+                            var isCollide = (rect[2] - rect[0]) * (rect[3] - rect[1]) > 0;
+                            if (isCollide && [-100, -100] != paddpower) {
+                                const tankId = aMyTankCount[i].id;
+                                const timer = setInterval(function () {
+                                    if(aMyTankCount[1] && aMyTankCount[1].id == tankId) {
+                                        ctx.drawImage(addpower, 0, 0, 50, 50, aMyTankCount[1]['X'], aMyTankCount[1]['Y'], 50, 50); //吃东西效果
+                                    } else {
+                                        clearInterval(timer);
+                                    }
+                                }, 20);
+                                setTimeout(() => {
+                                    clearInterval(timer);
+                                }, 6000);
+                                paddpower = [-100, -100];
+                                if (1 == mapenemytankrank) {
+                                    //单血制则多加一点血
+                                    aMyTankCount[1].Hp = aMyTankCount[1].Hp + 1;
+                                } else {
+                                    aMyTankCount[1].poweradd = aMyTankCount[1].poweradd + 2 + Math.floor(Math.random() * 4);
+                                }
+                            }
+                            // 左边玩家，子弹击中防护罩道具
+                            var rect = checkCollide(paddshield[0], paddshield[1], tankWidth, tankWidth, aMyBulletCount2[nn]['X'] - bulletWidth / 2, aMyBulletCount2[nn]['Y'] - bulletWidth / 2, bulletWidth, bulletWidth);
+                            var isCollide = (rect[2] - rect[0]) * (rect[3] - rect[1]) > 0;
+                            if (isCollide && [-100, -100] != paddshield) {
+                                paddshield = [-100, -100];
+                                aMyTankCount[1].shieldadd = true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 检测夺旗
+            if(FlagMode) {
+                for (var i = 0; i < aMyTankCount.length; i++) {
+                    for (var j = 0; j < flagList.length; j++) {
+                        var flag = flagList[j];
+                        var rect = checkCollide(flag[0] - 50, flag[1], flag[2], flag[3], aMyTankCount[i]['X'], aMyTankCount[i]['Y'], tankWidth, tankWidth);
+                        var isCollide = (rect[2] - rect[0]) * (rect[3] - rect[1]) > 0;
+                        if (isCollide) {
+                            // 坦克碰撞旗帜
+                            const flagX = flag[0] - 50, flagY = flag[1];
+                            const timer = setInterval(function () {
+                                drawFlag(this.flag, flagX, flagY);
+                            }, 20);
+                            setTimeout(() => {
+                                clearInterval(timer);
+                            }, 4000);
+                            if (aMyTankCount[i]['id'] == 100) {
+                                playerAFlag++;
+                            }
+                            if (aMyTankCount[i]['id'] == 200) {
+                                playerBFlag++;
+                            }
+                            flagList.splice(j, 1, [-200, -200, 100, 100]);
+                        }
+                    }
+                }
+                var newflag = [];
+                for (var j = 0; j < flagList.length; j++) {
+                    if(flagList[j][0] > 0 && flagList[j][1] > 0) {
+                        newflag.push(flagList[j])
+                    }
+                }
+                flagList = newflag;
+            }
+
+            try {
+                playerA.leave();
+            } catch (e) {
+                console.error('左侧玩家代码异常,请检查leave方法', e?.message ?? e?.stack ?? '--');
+            }
+            try {
+                playerB.leave();
+            } catch (e) {
+                console.error('右侧玩家代码异常,请检查leave方法', e?.message ?? e?.stack ?? '--');
+            }
+
+            playplayerALife = 0;
+            playerBLife = 0;
+            for (var i = 0; i < aMyTankCount.length; i++) {
+                if (aMyTankCount[i].id == 100) {
+                    playplayerALife = aMyTankCount[i].Hp;
+                }
+                if (aMyTankCount[i].id == 200) {
+                    playerBLife = aMyTankCount[i].Hp;
+                }
+            }
+            $('#playplayerALife').val(playplayerALife);
+            $('#playerBLife').val(playerBLife);
+
+            GameOver = checkGameOver();
+        }
+
+        //检测碰撞
+        function checkCollide(A, B, C, D, E, F, G, H) {
+            C += A; //算出矩形1右下角横坐标
+            D += B; //算出矩形1右下角纵坐标
+            G += E; //算出矩形2右下角横纵标
+            H += F; //算出矩形2右下角纵坐标
+            if (C <= E || G <= A || D <= F || H <= B) {
+                //两个图形没有相交
+                return [0, 0, 0, 0];
+            }
+            var tmpX, tmpY;
+            if (E > A) {
+                //图形2在图形1右边
+                tmpX = G < C ? [E, G] : [E, C];
+            } else {
+                //图形2在图形1左边
+                tmpX = C < G ? [A, C] : [A, G];
+            }
+            if (F > B) {
+                //图形2在图形1下边
+                tmpY = H < D ? [F, H] : [F, D];
+            } else {
+                //图形2在图形1上边
+                tmpY = D < H ? [B, D] : [B, H];
+            }
+            return [tmpX[0], tmpY[0], tmpX[1], tmpY[1]];
+        }
+
+        function checkGameOver() {
+            // 防止选手的 land 方法未返回队伍名称
+            var leftName = typeof playerAName === "string" ? playerAName : document.getElementById("Player1barName").value;
+            var rightName = typeof playerBName === "string" ? playerBName : document.getElementById("Player2barName").value;
+
+            if (playerNum == 1) {
+                //1个玩家的时候
+                if (player1Die) {
+                    clearInterval(timer);
+                    $('#player1Num').text(playerAKill);
+                    $('#player2Num').text(playerBKill);
+                    $('#player1Numbar').val(playerAHit);
+                    $('#player2Numbar').val(playerBHit);
+                    $('#playerAKill').val(playerAKill);
+                    $('#playerBKill').val(playerBKill);
+                    $('#playerAFire').val(playerAFire);
+                    $('#playerBFire').val(playerBFire);
+                    aTankCount = []; //清空所有敌方Tank
+                    aMyTankCount = []; //清空所有所有我方Tank
+                    aBulletCount = []; //清空所有敌方坦克子弹
+                    aMyBulletCount1 = []; //清空所有子弹
+                    aMyBulletCount2 = []; //清空所有子弹
+                    audioplay(remix);
+                    bgmplay('');
+                    return true;
+                }
+            } else {
+                // A组AiRank模式
+                if (_configs.gameMode === 1 && (0 == aTankCount.length || true == player1Die || remaintime <= 0)) {
+                    const jsonobj = {
+                        win: playerAfile,
+                        battleId: Number(battleid),
+                        type: _configs.gameMode,
+                        aiRank: Number(aiRank),
+                        debug: Number(debug),
+                        eCount: Number(eCount),
+                        groupName: groupName,
+                        mapinfo: mapfile,
+                        playerA: playerAfile,
+                        playerAHit: Number(playerAHit),
+                        playerAKill: playerAKill,
+                        playerAFire: playerAFire,
+                        playerALife: playplayerALife,
+                        playerACostTime: playerACostTime,
+                        playerACapturedFlags: FlagMode ? playerAFlag : 0,
+                        playerBCapturedFlags: FlagMode ? playerBFlag : 0,
+                        playerB: 'null',
+                        playerBHit: 0,
+                        playerBKill: 0,
+                        playerBFire: 0,
+                        playerBLife: 0,
+                        playerBCostTime: 0
+                    };
+                    reportResult(jsonobj);
+
+                    clearInterval(timer);
+                    UIShowResult(playerAKill, 0, 1, leftName, rightName);
+                    $('#player1Num').text(playerAKill);
+                    $('#player2Num').text(playerBKill);
+                    $('#player1Numbar').val(playerAHit);
+                    $('#player2Numbar').val(playerBHit);
+                    $('#playerAKill').val(playerAKill);
+                    $('#playerBKill').val(playerBKill);
+                    $('#playerAFire').val(playerAFire);
+                    $('#playerBFire').val(playerBFire);
+                    aTankCount = []; //清空所有敌方Tank
+                    aMyTankCount = []; //清空所有所有我方Tank
+                    aBulletCount = []; //清空所有敌方坦克子弹
+                    aMyBulletCount1 = []; //清空所有子弹
+                    aMyBulletCount2 = []; //清空所有子弹
+                    audioplay(remix);
+                    bgmplay('');
+                    return true;
+                }
+
+                // B组车轮战模式  预决赛
+                if (_configs.gameMode === 2 || _configs.gameMode === 3) {
+                    if (aTankCount.length === 0 || (player1Die && player2Die) || remaintime <= 0) {
+                        clearInterval(timer);
+                        $('#player1Num').text(playerAKill);
+                        $('#player2Num').text(playerBKill);
+                        $('#player1Numbar').val(playerAHit);
+                        $('#player2Numbar').val(playerBHit);
+                        $('#playerAKill').val(playerAKill);
+                        $('#playerBKill').val(playerBKill);
+                        $('#playerAFire').val(playerAFire);
+                        $('#playerBFire').val(playerBFire);
+                        const jsonobj = {
+                            win: playerAKill > playerBKill ? playerAfile : playerBfile,
+                            battleId: Number(battleid),
+                            type: _configs.gameMode,
+                            aiRank: Number(aiRank),
+                            debug: Number(debug),
+                            eCount: Number(eCount),
+                            groupName: groupName,
+                            mapinfo: mapfile,
+                            playerA: playerAfile,
+                            playerAHit: Number(playerAHit),
+                            playerAKill: playerAKill,
+                            playerAFire: playerAFire,
+                            playerALife: playplayerALife,
+                            playerACostTime: playerACostTime,
+                            playerB: playerBfile,
+                            playerBHit: Number(playerBHit),
+                            playerBKill: playerBKill,
+                            playerBFire: playerBFire,
+                            playerBLife: playerBLife,
+                            playerBCostTime: playerBCostTime,
+                            playerACapturedFlags: FlagMode ? playerAFlag : 0,
+                            playerBCapturedFlags: FlagMode ? playerBFlag : 0,
+                        };
+                        audioplay(remix);
+                        bgmplay('');
+                        reportResult(jsonobj);
+                        UIShowResult(playerAKill, playerBKill, playerAKill > playerBKill ? 1 : 2, leftName, rightName);
+                        return true;
+                    }
+                }
+
+                // 决赛
+                if (_configs.gameMode === 4) {
+                    // 无剩余时间： 1. 有一方死亡另一方赢  2. 无死亡 看谁杀的多
+                    if (remaintime <= 0) {
+                        clearInterval(timer);
+                        $('#player1Num').text(playerAKill);
+                        $('#player2Num').text(playerBKill);
+                        $('#player1Numbar').val(playerAHit);
+                        $('#player2Numbar').val(playerBHit);
+                        $('#playerAKill').val(playerAKill);
+                        $('#playerBKill').val(playerBKill);
+                        $('#playerAFire').val(playerAFire);
+                        $('#playerBFire').val(playerBFire);
+                        if (!player1Die && !player2Die) {
+                            const jsonobj = {
+                                win: playerAKill > playerBKill ? playerAfile : playerBfile,
+                                battleId: Number(battleid),
+                                type: _configs.gameMode,
+                                aiRank: Number(aiRank),
+                                debug: Number(debug),
+                                eCount: Number(eCount),
+                                groupName: groupName,
+                                mapinfo: mapfile,
+                                playerA: playerAfile,
+                                playerAHit: Number(playerAHit),
+                                playerAKill: playerAKill,
+                                playerAFire: playerAFire,
+                                playerALife: playplayerALife,
+                                playerACostTime: playerACostTime,
+                                playerB: playerBfile,
+                                playerBHit: Number(playerBHit),
+                                playerBKill: playerBKill,
+                                playerBFire: playerBFire,
+                                playerBLife: playerBLife,
+                                playerBCostTime: playerBCostTime,
+                                playerACapturedFlags: FlagMode ? playerAFlag : 0,
+                                playerBCapturedFlags: FlagMode ? playerBFlag : 0,
+                            };
+                            reportResult(jsonobj);
+                            audioplay(remix);
+                            bgmplay('');
+                            UIShowResult(playerAKill, playerBKill, playerAKill > playerBKill ? 1 : 2, leftName, rightName);
+                            return true;
+                        } else {
+                            const jsonobj = {
+                                win: player1Die ? playerBfile : playerAfile,
+                                battleId: Number(battleid),
+                                type: _configs.gameMode,
+                                aiRank: Number(aiRank),
+                                debug: Number(debug),
+                                eCount: Number(eCount),
+                                groupName: groupName,
+                                mapinfo: mapfile,
+                                playerA: playerAfile,
+                                playerAHit: Number(playerAHit),
+                                playerAKill: playerAKill,
+                                playerAFire: playerAFire,
+                                playerALife: playplayerALife,
+                                playerACostTime: playerACostTime,
+                                playerB: playerBfile,
+                                playerBHit: Number(playerBHit),
+                                playerBKill: playerBKill,
+                                playerBFire: playerBFire,
+                                playerBLife: playerBLife,
+                                playerBCostTime: playerBCostTime,
+                                playerACapturedFlags: FlagMode ? playerAFlag : 0,
+                                playerBCapturedFlags: FlagMode ? playerBFlag : 0,
+                            };
+                            reportResult(jsonobj);
+                            audioplay(remix);
+                            bgmplay('');
+                            UIShowResult(playerAKill, playerBKill, player1Die ? 2 : 1, leftName, rightName);
+                        }
+                        return true;
+                    }
+                    // 双死 重赛
+                    if (player1Die && player2Die) {
+                        clearInterval(timer);
+                        $('#player1Num').text(playerAKill);
+                        $('#player2Num').text(playerBKill);
+                        $('#player1Numbar').val(playerAHit);
+                        $('#player2Numbar').val(playerBHit);
+                        $('#playerAKill').val(playerAKill);
+                        $('#playerBKill').val(playerBKill);
+                        $('#playerAFire').val(playerAFire);
+                        $('#playerBFire').val(playerBFire);
+                        audioplay(remix);
+                        bgmplay('');
+                        UIShowResult(playerAKill, playerBKill, 3, leftName, rightName);
+                        return true;
+                    }
+                    // 一方宰了另一方
+                    if (aTankCount.length === 0 && (player1Die || player2Die)) {
+                        clearInterval(timer);
+                        $('#player1Num').text(playerAKill);
+                        $('#player2Num').text(playerBKill);
+                        $('#player1Numbar').val(playerAHit);
+                        $('#player2Numbar').val(playerBHit);
+                        $('#playerAKill').val(playerAKill);
+                        $('#playerBKill').val(playerBKill);
+                        $('#playerAFire').val(playerAFire);
+                        $('#playerBFire').val(playerBFire);
+                        const jsonobj = {
+                            win: player1Die ? playerBfile : playerAfile,
+                            battleId: Number(battleid),
+                            type: _configs.gameMode,
+                            aiRank: Number(aiRank),
+                            debug: Number(debug),
+                            eCount: Number(eCount),
+                            groupName: groupName,
+                            mapinfo: mapfile,
+                            playerA: playerAfile,
+                            playerAHit: Number(playerAHit),
+                            playerAKill: playerAKill,
+                            playerAFire: playerAFire,
+                            playerALife: playplayerALife,
+                            playerACostTime: playerACostTime,
+                            playerB: playerBfile,
+                            playerBHit: Number(playerBHit),
+                            playerBKill: playerBKill,
+                            playerBFire: playerBFire,
+                            playerBLife: playerBLife,
+                            playerBCostTime: playerBCostTime,
+                            playerACapturedFlags: FlagMode ? playerAFlag : 0,
+                            playerBCapturedFlags: FlagMode ? playerBFlag : 0,
+                        };
+                        reportResult(jsonobj);
+                        audioplay(remix);
+                        bgmplay('');
+                        UIShowResult(playerAKill, playerBKill, player1Die ? 2 : 1, leftName, rightName);
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+
+        // report game's result to server
+        function reportResult(data) {
+            if (debug === true) return;
+            $.ajax({
+                async: false,
+                type: 'POST',
+                url: reportUrl + '/api/y2023/gameRec?_tc=sZXczvbznhjasdzdddasfgddsZXcvddbnhjhtyredwasDFGHJdYTfREaWAsa',
+                data: JSON.stringify({
+                    ...data,
+                    type: config.gameMode
+                }),
+                dataType: 'json',
+                contentType: 'application/json;charset=UTF-8',
+                success: function (xhr, textStatus, errorThrown) {
+                    //alert(textStatus)
+                },
+                error: function (xhr, textStatus, errorThrown) {
+                    alert(textStatus);
+                }
+            });
+        }
+
+        return { fileImport: fileImport };
+    })();
+</script>
+</body>
+</html>
